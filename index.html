@@ -337,6 +337,109 @@ function prepareEditorialCard(item){
  item.titleStatus='원문 검토 필요 · 자동 제목';
  return item;
 }
+
+// 주제별 도입문이 아니라 실제 발췌한 문장에 근거하여 최대 두 분야를 제안합니다.
+// 문서 전체를 'AI가 요약했다'고 주장하지 않습니다. 원문 중 선별한 문장만 재배치합니다.
+const PASSAGE_FIELDS={
+  '공부':/(공부|학생|학교|시험|암기|기억|집중|주의력|교육|교수법|학습법|공부법|독서|인지과학|뇌과학|메타인지|사고력)/g,
+  '기술':/(인공지능|기계\s*학습|강화\s*학습|지도\s*학습|비지도\s*학습|딥러닝|신경망|트랜스포머|컴퓨터|알고리즘|로봇|프로그램|디지털|정보기술|데이터|가상현실|인터넷|반도체|소프트웨어|머신러닝)/g,
+  '문화':/(문화|예술|영화|음악|미술|문학|연극|공연|애니메이션|웹툰|디자인|전시|박물관|건축|드라마|전통문화)/g,
+  '취미':/(취미|요리|베이킹|뜨개질|캠핑|등산|낚시|공예|원예|보드게임|퍼즐|자전거|사진\s*촬영|독서|악기\s*연주|게임\s*플레이|여행|그림\s*그리기|스포츠|정원\s*가꾸기)/g
+};
+const STUDENT_TOPICS=/(학생|청소년|학교|수업|스마트폰|영상|게임|일상|생활|친구|SNS|소셜|뇌|기억|감정|집중|습관|선택|추천|음악|영화|로봇|인공지능|실험|놀라|왜|어떻게|방법|사례|비교|실제로)/g;
+function passageKeywords(text,category){
+ const re=PASSAGE_FIELDS[category];
+ if(!re)return [];
+ return [...new Set((String(text||'').match(re)||[]).map(x=>x.replace(/\s+/g,' ')))].slice(0,6);
+}
+function passageSentences(source){
+ const clean=String(source||'').replace(/\r/g,'').replace(/\[[0-9]{1,4}\]/g,' ')
+   .replace(/^=+\s*[^=\n]+\s*=+\s*$/gm,'\n')
+   .replace(/[ \t]+/g,' ').trim();
+ const paragraphs=clean.split(/\n+/).map(p=>p.trim()).filter(x=>x.length>30);
+ const sentences=[];
+ for(const p of paragraphs){
+   const fragments=p.match(/[^.!?。]+(?:[.!?。]+(?=\s|$)|$)/g)||[p];
+   for(const segment of fragments){
+     const t=tidy(segment).replace(/^[•·–\-]\s*/,'');
+     if(t.length>=45 && t.length<=500 && looksKorean(t))sentences.push(t);
+   }
+ }
+ if(!sentences.length&&clean.length>=85)sentences.push(tidy(clean).slice(0,350));
+ return sentences.slice(0,110);
+}
+function excerptCandidates(fullText,categories){
+ const sentences=passageSentences(fullText),pool=[];
+ for(let i=0;i<sentences.length;i++){
+  for(let size=1;size<=2&&i+size<=sentences.length;size++){
+    const joined=sentences.slice(i,i+size).join(' ').trim();
+    if(joined.length<95 || joined.length>410)continue;
+    const signals=categories.map(cat=>({cat,hits:passageKeywords(joined,cat)}));
+    const matched=signals.filter(x=>x.hits.length);
+    if(!matched.length)continue;
+    const student=[...new Set(joined.match(STUDENT_TOPICS)||[])].length;
+    const depth=matched.reduce((sum,x)=>sum+Math.min(x.hits.length,3),0);
+    const multi=matched.length>=2;
+    const clearSentence=/[.!?。]$/.test(joined)?3:0;
+    const overlong=Math.max(0,joined.length-290)/35;
+    const score=(multi?80:0)+depth*8+Math.min(student,6)*3+clearSentence-overlong-(i>42?3:0);
+    pool.push({text:joined,tags:matched.map(x=>x.cat).slice(0,2),signals,score,position:i});
+  }
+ }
+ return pool.sort((a,b)=>b.score-a.score || a.position-b.position);
+}
+function crossoverHeadline(original,excerpt,tags){
+ const raw=cleanTopicName(original),t=String(excerpt||'');
+ const both=(a,b)=>tags.includes(a)&&tags.includes(b);
+ if(both('공부','기술')){
+  if(/신경망|인공지능|알고리즘/.test(t)&&/뇌|인지과학|생물학|신경/.test(t))return '인공지능은 사람의 뇌에서 어떤 아이디어를 얻었을까?';
+  if(/학습|교육|학생|학교/.test(t)&&/인공지능|컴퓨터|디지털|기술/.test(t))return raw+'으로 연결되는 배움과 기술의 원리';
+ }
+ if(both('기술','문화')){
+  if(/영화|애니메이션|영상/.test(t))return '영상과 디지털 기술은 어떻게 만날까?';
+  if(/음악|예술|디자인/.test(t))return '기술은 예술을 표현하는 방식을 어떻게 바꿀까?';
+ }
+ if(both('문화','취미')&&/요리|독서|사진|공예|음악|악기/.test(t))
+  return '즐기는 활동이 문화가 되는 순간, '+raw;
+ if(both('공부','취미')&&/게임|독서|음악|퍼즐|취미/.test(t))
+  return '즐거운 활동에서 발견하는 배움의 원리';
+ return '';
+}
+function excerptHeadline(original,excerpt,tags){
+ const raw=cleanTopicName(original);
+ const cross=crossoverHeadline(original,excerpt,tags);
+ if(cross && cross.length<=65)return cross;
+ return groundedHeadline(raw,excerpt);
+}
+function curateStudentCard(item,categories){
+ if(item.source!=='한국어 위키백과'){
+   return isRelevantCandidate(item,categories)?item:null;
+ }
+ const raw=String(item.fullText||item.description||'');
+ if(!hasUsefulSummary(raw))return null;
+ const candidates=excerptCandidates(raw,categories);
+ if(!candidates.length)return null;
+ let winner=null;
+ // 본문 근거가 확인된 구간만 채택합니다. 자동 제목이 구성 불가능하면 후보에서 제외합니다.
+ for(const candidate of candidates){
+   const title=excerptHeadline(item.originalTitle||item.title,candidate.text,candidate.tags);
+   if(!title||title.length>70||! /^[가-힣]/.test(title))continue;
+   winner={...candidate,title};break;
+ }
+ if(!winner)return null;
+ item.description=winner.text;
+ item.title=winner.title;
+ item.tags=winner.tags.slice(0,2);
+ item.titleStatus='본문 발췌 기반 · 승민 검토 필요';
+ item.evidence=winner.signals.filter(x=>item.tags.includes(x.cat)).map(x=>x.cat+': '+x.hits.slice(0,2).join('·')).join(' / ');
+ item.excerptPosition=winner.position;
+ // 기존의 정치·기관 필터를 본문 발췌 후에도 적용하되, 분야는 선택 구간의 실제 일치 단어로만 결정합니다.
+ const backedUpTags=item.tags.slice();
+ if(!isRelevantCandidate(item,categories))return null;
+ item.tags=backedUpTags;
+ return item;
+}
+
 function safeURL(s){try{const u=new URL(s);return ['https:','http:'].includes(u.protocol)?u.href:''}catch{return ''}}function tidy(s){return String(s||'').replace(/<[^>]+>/g,' ').replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/\s+/g,' ').trim()}function addText(parent,tag,text,cls){const e=document.createElement(tag);e.textContent=text||'';if(cls)e.className=cls;parent.append(e);return e}function srcName(type){return type==='영상'?'영상':'기사·글'}
 function mkResult({id,title,url,thumbnail,description,source,form,category,date}){
   const originalTitle=tidy(title);
