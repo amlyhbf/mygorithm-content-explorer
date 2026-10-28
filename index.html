@@ -1095,13 +1095,14 @@ async function rerollSearch(){
  if(state.forms.includes('기사')){
   const keys=new Set(state.articleJobs.map(j=>j.query).filter(Boolean));
   for(const job of preferredSearchJobs(state.cats,state.term,state.max)){
-   if(!keys.has(job.query)){state.articleJobs.push(job);keys.add(job.query)}
+   if(!keys.has(job.query)){job.pendingFirst=true;state.articleJobs.push(job);keys.add(job.query)}
   }
  }
- const jobs=[...state.articleJobs,...state.videoJobs].filter(j=>j.cursor&&typeof j.cursor==='object');
+ const jobs=[...state.articleJobs,...state.videoJobs].filter(j=>j.pendingFirst||(j.cursor&&typeof j.cursor==='object'));
  const limit=Math.min(5,jobs.length);
  // 한 종류의 주제만 반복 탐색하지 않도록 새로고침마다 페이지 탐색 순서를 순환시킵니다.
  const rotated=jobs.length?jobs.slice(state.rotationIndex%jobs.length).concat(jobs.slice(0,state.rotationIndex%jobs.length)):[];
+ rotated.sort((a,b)=>Number(!!b.pendingFirst)-Number(!!a.pendingFirst));
  const selectedJobs=rotated.slice(0,limit);
  let completed=0;
  results=selectUnseenCards(state);
@@ -1115,7 +1116,7 @@ async function rerollSearch(){
    const batch=job.kind==='Wikimedia 영상'
      ?await commons(job.cat,state.term,job.max,job.cursor)
      :await wiki(job.category,state.term,job.max,job.cursor,job.query,job.pair);
-   job.cursor=batch.nextCursor??null;
+   job.cursor=batch.nextCursor??null;job.pendingFirst=false;
    for(const item of batch){
     if(item?.url&&!state.rawCandidates.has(item.url))state.rawCandidates.set(item.url,item);
    }
