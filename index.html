@@ -77,8 +77,59 @@ button:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px soli
 .thumb-emblem{width:39px;height:39px;border-radius:13px;display:grid;place-items:center;background:#ffffff91;font-size:24px}
 .thumb-eyebrow,.thumb-note{font-size:11px;font-weight:650;opacity:.73}
 .thumb-topic{font-size:clamp(21px,2.3vw,29px);line-height:1.25;word-break:keep-all;letter-spacing:-.035em;max-width:95%}
-.tag.mix{color:#5742a2;background:#efeafd}.evidence{font-size:11px;color:#506b8b;border-top:1px dashed #d6e2f4;padding-top:7px}.desc{line-height:1.7}</style></head>
-<body><div class="shell"><header><div class="logo"><div class="mark">✦</div><div><h1>맘고리즘 콘텐츠 탐색기</h1><p class="sub">이승민 콘텐츠 조사 도구 · 검색 → 검토 → 후보 저장</p></div></div><span class="pill">모바일·웹 공유용 v9</span></header>
+.tag.mix{color:#5742a2;background:#efeafd}.evidence{font-size:11px;color:#506b8b;border-top:1px dashed #d6e2f4;padding-top:7px}.desc{line-height:1.7}
+/* 검색 진행 상태 — 실제 요청 완료율과 발견한 후보 수를 분리해 표시 */
+[hidden]{display:none!important}
+.search-progress{border:1px solid #cbdcf9;border-radius:18px;padding:20px 22px 17px;
+  background:linear-gradient(115deg,#fff 0%,#f1f6ff 67%,#f5f0ff 100%);
+  box-shadow:0 10px 26px rgba(43,96,171,.07);color:#193356}
+.sp-heading-row{display:flex;align-items:center;gap:13px}
+.sp-icon{width:43px;height:43px;flex:none;display:grid;place-items:center;border-radius:14px;
+  background:linear-gradient(135deg,#377bf6,#8063ed);color:white;font-size:21px;
+  box-shadow:0 4px 12px #477de82b}
+.search-progress[data-phase="searching"] .sp-icon{animation:spPulse 1.8s ease-in-out infinite}
+.sp-heading{min-width:0;flex:1;display:flex;flex-direction:column;gap:3px}
+.sp-heading strong{font-size:17px;letter-spacing:-.03em;line-height:1.35}
+.sp-subtitle{font-size:12px;color:#667d9f;line-height:1.45;word-break:keep-all}
+.sp-state{flex:none;border-radius:999px;padding:6px 11px;background:#e7f0ff;color:#245ab5;
+  font-size:11px;font-weight:800;white-space:nowrap}
+.sp-state:before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;
+  margin-right:6px;background:#3c7cf5;vertical-align:middle;box-shadow:0 0 0 3px #3c7cf51a}
+.sp-bar{height:9px;background:#e4ebf8;border-radius:999px;overflow:hidden;margin-top:19px}
+.sp-bar-fill{display:block;height:100%;width:0%;border-radius:inherit;
+  background:linear-gradient(90deg,#4a8bfa,#7c67ed);transition:width .4s ease}
+.sp-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;
+  color:#6b809e;font-size:12px;flex-wrap:wrap}
+.sp-step,.sp-discovered{display:inline-flex;align-items:center;gap:7px}
+.sp-step strong{font-size:13px;color:#365a98;font-variant-numeric:tabular-nums}
+.sp-discovered{border:1px solid #d9e8ff;border-radius:999px;background:#fff;padding:5px 11px}
+.sp-discovered strong{font-size:14px;font-variant-numeric:tabular-nums;color:#245fc6}
+.sp-found-dot{width:7px;height:7px;border-radius:50%;background:#4b8dfa}
+.search-progress[data-phase="done"]{border-color:#cfe5db;background:linear-gradient(115deg,#fff,#f0fbf7)}
+.search-progress[data-phase="done"] .sp-icon{background:linear-gradient(135deg,#25a87e,#55c4a0)}
+.search-progress[data-phase="done"] .sp-state{background:#e1f7ee;color:#197f60}
+.search-progress[data-phase="done"] .sp-state:before,.search-progress[data-phase="done"] .sp-found-dot{background:#28ad83}
+.search-progress[data-phase="failed"]{border-color:#f0d7d5;background:linear-gradient(115deg,#fff,#fff5f2)}
+.search-progress[data-phase="failed"] .sp-state{background:#fff0eb;color:#ad5d45}
+.search-progress[data-phase="failed"] .sp-state:before{background:#dc8765}
+@keyframes spPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.045)}}
+@media(max-width:570px){
+ .search-progress{padding:15px 14px;border-radius:15px}
+ .sp-heading-row{gap:10px}
+ .sp-icon{width:37px;height:37px;border-radius:12px;font-size:18px}
+ .sp-heading strong{font-size:15px}
+ .sp-subtitle{font-size:11px}
+ .sp-state{font-size:10px;padding:5px 8px}
+ .sp-footer{gap:7px;font-size:11px}
+ .sp-discovered{padding:4px 8px}
+}
+@media(prefers-reduced-motion:reduce){
+ .search-progress[data-phase="searching"] .sp-icon{animation:none}
+ .sp-bar-fill{transition:none}
+}
+
+</style></head>
+<body><div class="shell"><header><div class="logo"><div class="mark">✦</div><div><h1>맘고리즘 콘텐츠 탐색기</h1><p class="sub">이승민 콘텐츠 조사 도구 · 검색 → 검토 → 후보 저장</p></div></div><span class="pill">모바일·웹 공유용 v10</span></header>
 <div class="layout"><aside class="panel side"><h2>🔎 탐색 조건</h2><div class="sec"><label class="field">관심 분야 · 여러 개 선택 가능</label><div class="choices" id="cats"><label class="choice"><input type="checkbox" value="공부" checked>📘 공부</label><label class="choice"><input type="checkbox" value="기술" checked>💻 기술</label><label class="choice"><input type="checkbox" value="문화">🎬 문화</label><label class="choice"><input type="checkbox" value="취미">🎨 취미</label></div></div>
 <div class="sec"><label class="field">콘텐츠 형태 · 여러 개 선택 가능</label><div class="choices" id="forms"><label class="choice"><input type="checkbox" value="기사" checked>📰 기사·글</label><label class="choice"><input type="checkbox" value="영상" checked>▶ 영상</label></div></div>
 <div class="sec"><label class="field" for="keyword">세부 검색어 (선택)</label><input class="input" id="keyword" placeholder="예: 인공지능, 학습법, 영화" maxlength="100"><p class="tiny" style="margin-top:6px">입력하면 각 분야와 함께 검색해요.</p></div>
@@ -86,7 +137,23 @@ button:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px soli
 <button id="search" class="primary full">✨ 후보 콘텐츠 찾기</button><div class="notice">이 웹사이트는 검색 서버를 통해 관련 콘텐츠를 찾습니다. 후보는 현재 사용 중인 브라우저에만 저장되므로, 다른 기기로 옮길 때는 CSV 내보내기·불러오기를 사용하세요.</div>
 <details class="config"><summary>⚙ 유튜브 API 키 입력 (로컬 테스트 전용)</summary><p>공개 웹사이트에서는 개인 API 키를 입력하지 마세요. 현재 유튜브 검색은 키 없이 Wikimedia Commons 영상만 자동 검색합니다. 유튜브 연동은 추후 서버에서 키를 관리하는 방식으로 추가할 수 있어요.</p><input type="password" id="youtubeKey" class="input" placeholder="공개 배포용 버전: 입력 비활성화" autocomplete="off" disabled><p><a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener noreferrer">Google Cloud에서 API 확인</a></p></details>
 </aside><main><div class="topbar"><div class="tabs"><button id="tabResults" class="tab on">검색 결과</button><button id="tabSaved" class="tab">후보 보관함 <span id="savedCount">0</span></button></div><div class="savehead"><button id="export" class="secondary">⬇ CSV 내보내기</button><button id="importBtn" class="ghost">⬆ CSV 불러오기</button><input id="importFile" type="file" accept=".csv,text/csv" hidden></div></div>
-<div id="status" class="status">왼쪽에서 분야와 콘텐츠 형태를 선택하고 <strong>후보 콘텐츠 찾기</strong>를 눌러주세요.</div><div id="results" class="results" style="margin-top:15px"></div><div id="moreWrap" style="margin-top:16px;display:none;text-align:center"><button id="more" class="secondary" type="button">＋ 다음 기사 더 찾기</button></div><div class="foot">※ 기사 주제와 관련성이 확인된 이미지만 사용하며, 이미지가 없거나 다른 카드와 중복되면 기사별 주제 그래픽으로 대체합니다. 제목은 한국어 중심의 짧은 편집안으로 제안합니다. 여러 문장 중 선택된 원문 발췌 구간에 근거하여 분야를 최대 2개 지정하고 학생 관심도를 우선합니다. 자동 발췌·분류 결과는 최종 검토가 필요합니다. 원문과의 일치 여부는 승민이가 최종 확인해야 합니다. ※ 분야 적합성을 제목·설명에서 다시 확인하며, 정치 지도자 등 부적합한 문서를 자동 후보에서 제외합니다. 제목과 본문은 원문 발췌에 근거하며, 충분한 설명이 없는 문서는 검색 결과에서 제외합니다. 실제 원문을 읽고 검토한 후 승민이가 수정할 수 있습니다. ※ 한국어 제목·설명을 기준으로 검색 결과를 걸러냅니다. 영상의 실제 음성·자막 언어는 자동 보장되지 않아 원본 확인이 필요합니다. 분야 태그는 검색 분야와 제목·설명 키워드로 제안한 값이며 최대 2개입니다. 자동 분류 결과를 승민이가 검토해야 합니다. 링크 접속 및 원문 내용의 일치 여부는 별도로 확인해야 합니다. 검색 결과를 저장해도 개발 반영이 완료되는 것은 아닙니다.</div></main></div></div>
+<div id="status" class="status">왼쪽에서 분야와 콘텐츠 형태를 선택하고 <strong>후보 콘텐츠 찾기</strong>를 눌러주세요.</div>
+<section id="searchProgress" class="search-progress" hidden aria-label="콘텐츠 검색 진행 상황" aria-busy="false">
+ <div class="sp-heading-row">
+  <span class="sp-icon" id="spIcon" aria-hidden="true">✦</span>
+  <div class="sp-heading">
+   <strong id="spTitle">관심 있는 콘텐츠를 찾고 있어요</strong>
+   <span class="sp-subtitle" id="spDescription">관련 주제와 원문을 살펴보는 중이에요.</span>
+  </div>
+  <span id="spState" class="sp-state">검색 중</span>
+ </div>
+ <div class="sp-bar" id="spBar" role="progressbar" aria-label="검색 작업 진행률" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span class="sp-bar-fill" id="spBarFill"></span></div>
+ <div class="sp-footer">
+  <span class="sp-step"><strong id="spCompleted">0 / 0</strong><span>검색 작업 확인</span></span>
+  <span class="sp-discovered"><span class="sp-found-dot" aria-hidden="true"></span><strong id="spFound">0개</strong><span>후보 발견</span></span>
+ </div>
+</section>
+<div id="results" class="results" style="margin-top:15px"></div><div id="moreWrap" style="margin-top:16px;display:none;text-align:center"><button id="more" class="secondary" type="button">＋ 다음 기사 더 찾기</button></div><div class="foot">※ 기사 주제와 관련성이 확인된 이미지만 사용하며, 이미지가 없거나 다른 카드와 중복되면 기사별 주제 그래픽으로 대체합니다. 제목은 한국어 중심의 짧은 편집안으로 제안합니다. 여러 문장 중 선택된 원문 발췌 구간에 근거하여 분야를 최대 2개 지정하고 학생 관심도를 우선합니다. 자동 발췌·분류 결과는 최종 검토가 필요합니다. 원문과의 일치 여부는 승민이가 최종 확인해야 합니다. ※ 분야 적합성을 제목·설명에서 다시 확인하며, 정치 지도자 등 부적합한 문서를 자동 후보에서 제외합니다. 제목과 본문은 원문 발췌에 근거하며, 충분한 설명이 없는 문서는 검색 결과에서 제외합니다. 실제 원문을 읽고 검토한 후 승민이가 수정할 수 있습니다. ※ 한국어 제목·설명을 기준으로 검색 결과를 걸러냅니다. 영상의 실제 음성·자막 언어는 자동 보장되지 않아 원본 확인이 필요합니다. 분야 태그는 검색 분야와 제목·설명 키워드로 제안한 값이며 최대 2개입니다. 자동 분류 결과를 승민이가 검토해야 합니다. 링크 접속 및 원문 내용의 일치 여부는 별도로 확인해야 합니다. 검색 결과를 저장해도 개발 반영이 완료되는 것은 아닙니다.</div></main></div></div>
 <script>
 'use strict';
 const $=id=>document.getElementById(id);const CAT=['공부','기술','문화','취미'];const seeds={'공부':'학습','기술':'인공지능','문화':'예술','취미':'요리'};
@@ -649,7 +716,33 @@ async function wiki(category,term,max,cursor=null,queryOverride=null,focusCats=n
 }
 async function commons(category,term,max){const q=term?`${term} ${category}`:category;const p=new URLSearchParams({action:'query',format:'json',origin:'*',generator:'search',gsrsearch:q,gsrnamespace:'6',gsrlimit:String(Math.min(max*2,24)),prop:'imageinfo',iiprop:'url|mime|extmetadata',iiurlwidth:'480'});const d=await wikiJSON('https://commons.wikimedia.org/w/api.php?'+p);if(d.error)throw Error(d.error.info||'API 오류');return Object.values(d.query?.pages||{}).filter(x=>{const i=x.imageinfo?.[0];return i&&(/^video\//.test(i.mime||'')||/\.(webm|ogv|ogg)$/i.test(x.title))&&looksKorean(x.title.replace(/^File:/,''))&&looksKorean(tidy(i.extmetadata?.ImageDescription?.value||''))}).slice(0,max).map(x=>{const i=x.imageinfo[0];return mkResult({id:'commons:'+x.pageid,title:x.title.replace(/^File:/,'').replace(/\.[^.]+$/,'').replaceAll('_',' '),url:i.descriptionurl||'https://commons.wikimedia.org/wiki/'+encodeURIComponent(x.title.replace(/ /g,'_')),thumbnail:i.thumburl||'',description:tidy(i.extmetadata?.ImageDescription?.value)||'Wikimedia Commons에 공개된 영상입니다. 원본을 확인하세요.',source:'Wikimedia Commons',form:'영상',category})});}
 async function youtube(category,term,max,key){const q=term?`${category} ${term}`:seeds[category];const p=new URLSearchParams({part:'snippet',q,type:'video',maxResults:String(Math.min(max,50)),regionCode:'KR',relevanceLanguage:'ko',key});const r=await fetch('/api/proxy?url='+encodeURIComponent('https://www.googleapis.com/youtube/v3/search?'+p),{signal:AbortSignal.timeout(18000)});const d=await r.json();if(!r.ok)throw Error(d.error?.message||`YouTube HTTP ${r.status}`);return (d.items||[]).filter(x=>x.id?.videoId).map(x=>mkResult({id:'yt:'+x.id.videoId,title:x.snippet?.title,url:'https://www.youtube.com/watch?v='+x.id.videoId,thumbnail:x.snippet?.thumbnails?.medium?.url||x.snippet?.thumbnails?.default?.url,description:x.snippet?.description,source:x.snippet?.channelTitle||'YouTube',form:'영상',category,date:x.snippet?.publishedAt}));}
-function setStatus(s){$('status').replaceChildren();if(s)$('status').append(typeof s==='string'?document.createTextNode(s):s);$('status').style.display=s?'':'none'}function isSaved(item){return saved.some(x=>x.url===item.url)}function actionButton(label,cl,click){const b=document.createElement('button');b.className=cl;b.textContent=label;b.addEventListener('click',click);return b}
+function setStatus(s){
+ const el=$('status');el.replaceChildren();
+ if(s)el.append(typeof s==='string'?document.createTextNode(s):s);
+ el.hidden=!s||!$('searchProgress').hidden;
+}
+function hideSearchProgress(){
+ $('searchProgress').hidden=true;$('status').hidden=!$('status').textContent;
+}
+function updateSearchProgress({phase='searching',done=0,total=0,found=0,label='',errors=0,more=false}={}){
+ const card=$('searchProgress'),progress=total>0?Math.round(Math.max(0,Math.min(done,total))/total*100):0;
+ const working=phase==='searching',failed=phase==='failed';
+ card.hidden=false;card.dataset.phase=phase;card.setAttribute('aria-busy',String(working));
+ $('status').hidden=true;
+ $('spTitle').textContent=working?(more?'새로운 콘텐츠를 더 찾고 있어요':'관심 있는 콘텐츠를 찾고 있어요'):
+   failed?'검색 연결을 확인해 주세요':errors?'검색을 마쳤어요 · 일부 요청 실패':'콘텐츠 검색을 마쳤어요!';
+ $('spDescription').textContent=working?(label?label+' 살펴보는 중':'원문과 연결 주제를 확인하고 있어요'):
+   failed?'일부 검색이 실패했어요. 기존 후보는 그대로 유지됩니다.':
+   errors?'찾아낸 후보는 유지했어요. 실패한 검색은 아래 안내를 확인해 주세요.':
+   found?'추천 후보를 확인해 보세요. 원문 검토 후 저장할 수 있어요.':'완료된 검색에서 적합한 후보를 발견하지 못했어요.';
+ $('spState').textContent=working?'검색 중':failed?'연결 확인':errors?'일부 완료':'완료';
+ $('spIcon').textContent=working?'✦':failed?'!':'✓';
+ $('spCompleted').textContent=done+' / '+total;
+ $('spFound').textContent=found+'개';
+ $('spBarFill').style.width=progress+'%';
+ $('spBar').setAttribute('aria-valuenow',String(progress));
+}
+function isSaved(item){return saved.some(x=>x.url===item.url)}function actionButton(label,cl,click){const b=document.createElement('button');b.className=cl;b.textContent=label;b.addEventListener('click',click);return b}
 
 // 출처 사진이 실제 주제와 연결되는지 보수적으로 검사합니다.
 // 불확실하거나 중복된 이미지는 고유한 '주제형 썸네일'로 대체합니다.
@@ -731,7 +824,7 @@ function themeThumb(item){
 function card(x,isSavedView){const card=document.createElement('article');card.className='result';if(x.thumbnail){const img=document.createElement('img');img.className='thumb';img.src=x.thumbnail;img.alt=(x.originalTitle||x.title)+' 관련 자료 이미지';img.loading='lazy';img.referrerPolicy='no-referrer';img.addEventListener('error',()=>{img.replaceWith(themeThumb(x))});card.append(img)}else card.append(themeThumb(x));const body=document.createElement('div');body.className='rbody';const tags=addText(body,'div','','tags');for(const cat of (x.tags||[]).slice(0,2)){addText(tags,'span',cat,'tag '+({공부:'study',기술:'tech',문화:'culture',취미:'hobby'}[cat]||''))}addText(tags,'span',srcName(x.form),'tag form');if((x.tags||[]).length>1)addText(tags,'span','✦ 복합 분야','tag mix');if(x.source==='한국어 위키백과')addText(body,'div',x.titleStatus==='본문 발췌 기반 · 승민 검토 필요'?'✦ 학생 관심 구간 발췌 · 검토 필요':x.titleStatus==='원문 발췌 기반 · 검토 필요'?'✦ 원문 기반 제목 · 검토 필요':'✦ 주제별 제목 제안 · 원문 검토 필요','pitch');addText(body,'h3',x.title);if(x.originalTitle&&x.originalTitle!==x.title)addText(body,'div','원본 제목: '+x.originalTitle,'meta originalname');addText(body,'p',x.description||'원본에서 자세한 내용을 확인해 주세요.','desc');if(x.evidence)addText(body,'div','분야 연결 근거: '+x.evidence,'meta evidence');addText(body,'div',x.source+(x.date?' · '+x.date.slice(0,10):''),'meta');if(isSavedView){const box=addText(body,'div','','edited');addText(box,'label','추천 카드 제목 (직접 수정 가능)');const titleField=document.createElement('input');titleField.className='input';titleField.type='text';titleField.maxLength=100;titleField.value=x.title;titleField.setAttribute('aria-label','추천 카드 제목 수정');titleField.addEventListener('change',()=>{const edited=titleField.value.trim();if(!edited){titleField.value=x.title;return}updateSaved(x.url,{title:edited,titleStatus:'수동 수정'});render()});box.append(titleField);addText(box,'label','분야 수정 (최대 2개)');const select=document.createElement('select');for(const c of CAT){const op=document.createElement('option');op.value=c;op.textContent=c;select.append(op)}select.value=x.tags?.[0]||x.category;select.addEventListener('change',()=>{updateSaved(x.url,{tags:[select.value,...(x.tags||[]).filter(t=>t!==select.value)].slice(0,2)});render()});box.append(select);const second=document.createElement('select');for(const c of ['없음',...CAT]){const op=document.createElement('option');op.value=c;op.textContent=c==='없음'?'두 번째 분야 없음':c;second.append(op)}second.value=x.tags?.[1]||'없음';second.addEventListener('change',()=>{const first=select.value;const val=second.value;updateSaved(x.url,{tags:val==='없음'||val===first?[first]:[first,val]});render()});addText(box,'label','두 번째 분야');box.append(second);addText(box,'label','추천 이유 / 검토 메모');const area=document.createElement('textarea');area.className='input';area.value=x.reason||'';area.placeholder='이 콘텐츠를 추천할 이유를 작성하세요.';area.addEventListener('change',()=>updateSaved(x.url,{reason:area.value}));box.append(area);const verify=document.createElement('label');verify.style.display='flex';verify.style.alignItems='center';verify.style.gap='7px';const chk=document.createElement('input');chk.type='checkbox';chk.checked=!!x.verified;chk.addEventListener('change',()=>{updateSaved(x.url,{verified:chk.checked});render()});verify.append(chk,document.createTextNode('원본 링크·내용 직접 확인함'));box.append(verify);}
 const acts=addText(body,'div','','actions');const link=document.createElement('a');link.href=x.url;link.target='_blank';link.rel='noopener noreferrer';link.className='secondary';link.textContent='↗ 원본 열기';acts.append(link);if(isSavedView)acts.append(actionButton('보관함에서 삭제','ghost',()=>{if(confirm('이 후보를 보관함에서 삭제할까요?')){saved=saved.filter(y=>y.url!==x.url);persist();render()}}));else acts.append(actionButton(isSaved(x)?'✓ 저장됨':'+ 후보 저장','primary',()=>{if(!isSaved(x)){const {fullText,...candidate}=x;saved.unshift(candidate);persist()}render()}));card.append(body);return card}
 function fallback(form){const d=addText(document.createElement('div'),'div',form==='영상'?'▶ VIDEO':'▧ ARTICLE','thumb thumbfallback');return d}function updateSaved(url,patch){saved=saved.map(y=>y.url===url?{...y,...patch}:y);persist()}
-function render(){const active=tab==='saved';$('tabResults').classList.toggle('on',!active);$('tabSaved').classList.toggle('on',active);$('savedCount').textContent=saved.length;const arr=uniqueVisualCards(active?saved:results);const grid=$('results');grid.replaceChildren();if(active){setStatus(saved.length?`${saved.length}개 후보를 보관하고 있습니다. 저장 내용은 현재 브라우저에만 남아요.`:'아직 저장한 후보가 없습니다. 검색 결과에서 후보 저장을 눌러주세요.')}else if(!busy){const multi=results.filter(x=>(x.tags||[]).length>1).length;setStatus(results.length?`${results.length}개 한국어 콘텐츠를 찾았습니다.${lastSearchCats.length>1?' 복합 분야 '+multi+'개 · 복합 분야 카드를 우선 표시합니다.':''} 원문 근거를 확인한 후 저장하세요.`:'자동 검색 결과가 없습니다. 아래 웹 검색 링크를 이용해 주세요.')}if(!arr.length){grid.append(addText(document.createElement('div'),'div',active?'보관함이 비어 있어요.':'표시할 검색 결과가 없어요.','empty'));grid.lastElementChild.style.gridColumn='1/-1';return}for(const x of arr)grid.append(card(x,active))}
+function render(){const active=tab==='saved';$('tabResults').classList.toggle('on',!active);$('tabSaved').classList.toggle('on',active);$('savedCount').textContent=saved.length;const arr=uniqueVisualCards(active?saved:results);const grid=$('results');grid.replaceChildren();if(active){hideSearchProgress();setStatus(saved.length?`${saved.length}개 후보를 보관하고 있습니다. 저장 내용은 현재 브라우저에만 남아요.`:'아직 저장한 후보가 없습니다. 검색 결과에서 후보 저장을 눌러주세요.')}else if(!busy){const multi=results.filter(x=>(x.tags||[]).length>1).length;setStatus(results.length?`${results.length}개 한국어 콘텐츠를 찾았습니다.${lastSearchCats.length>1?' 복합 분야 '+multi+'개 · 복합 분야 카드를 우선 표시합니다.':''} 원문 근거를 확인한 후 저장하세요.`:'자동 검색 결과가 없습니다. 아래 웹 검색 링크를 이용해 주세요.')}if(!arr.length){grid.append(addText(document.createElement('div'),'div',active?'보관함이 비어 있어요.':'표시할 검색 결과가 없어요.','empty'));grid.lastElementChild.style.gridColumn='1/-1';return}for(const x of arr)grid.append(card(x,active))}
 async function search(){
  if(busy)return;
  const cats=selected('cats'),forms=selected('forms'),term=$('keyword').value.trim();
@@ -760,6 +853,7 @@ async function search(){
  }
  const errors=[],unique=new Map();
  let finished=0,successful=0;
+ const runningLabels=new Set();
  const refresh=()=>{
    const curated=[...unique.values()].filter(isKoreanCandidate)
        .map(item=>curateStudentCard({...item},cats)).filter(Boolean)
@@ -774,16 +868,18 @@ async function search(){
    });
    results=uniqueVisualCards(limited);
    render();
-   if(busy)setStatus('콘텐츠 검색 중 · '+finished+'/'+jobs.length+'개 분야·형태 검색 완료 · '+results.length+'개 후보를 먼저 표시했어요.');
+   if(busy)updateSearchProgress({phase:'searching',done:finished,total:jobs.length,found:results.length,label:[...runningLabels][0]||'',errors:errors.length});
  };
  try{
    if(!jobs.length)return;
-   setStatus('검색 서버 연결 및 콘텐츠 탐색을 시작합니다.');
+   updateSearchProgress({phase:'searching',done:0,total:jobs.length,found:0});
    // 서로 다른 검색 2개까지만 동시에 진행. 완료된 후보를 먼저 화면에 표시.
    let nextIndex=0;
    const worker=async()=>{
      while(nextIndex<jobs.length){
        const job=jobs[nextIndex++];
+       runningLabels.add(job.label||job.cat+' 검색');
+       updateSearchProgress({phase:'searching',done:finished,total:jobs.length,found:results.length,label:[...runningLabels][0]||''});
        try{
          const found=await job.run();
          if(job.kind==='위키백과')job.cursor=found.nextCursor??null;
@@ -799,6 +895,7 @@ async function search(){
          errors.push((job.label||job.cat+' '+job.kind)+': '+(e?.message||'검색 연결 실패'));
        }finally{
          finished++;
+         runningLabels.delete(job.label||job.cat+' 검색');
          refresh();
        }
      }
@@ -806,6 +903,7 @@ async function search(){
    await Promise.all(Array.from({length:Math.min(2,jobs.length)},()=>worker()));
  }finally{
    busy=false;$('search').disabled=false;refresh();
+   updateSearchProgress({phase:errors.length===jobs.length?'failed':'done',done:finished,total:jobs.length,found:results.length,errors:errors.length});
    if(errors.length){
      const warn=document.createElement('div');
      warn.className='notice transientSearchMessage';
@@ -836,10 +934,12 @@ async function loadMore(){
   const nextJobs=state.articleJobs.filter(j=>j.cursor&&typeof j.cursor==='object').slice(0,2);
   if(!nextJobs.length){updateLoadMore();return;}
   busy=true;$('search').disabled=true;$('more').disabled=true;
-  setStatus('다음 기사 묶음을 검색하고 있어요. 기존 후보는 유지됩니다.');
+  updateSearchProgress({phase:'searching',done:0,total:nextJobs.length,found:results.length,more:true});
   const errors=[];
   const byUrl=new Map(results.map(x=>[x.url,x]));
+  let moreDone=0;
   for(const job of nextJobs){
+    updateSearchProgress({phase:'searching',done:moreDone,total:nextJobs.length,found:byUrl.size,label:job.label,errors:errors.length,more:true});
     try{
       const batch=await wiki(job.category,state.term,job.max,job.cursor,job.query,job.pair);
       job.cursor=batch.nextCursor??null;
@@ -853,12 +953,16 @@ async function loadMore(){
     }catch(e){
       errors.push(job.label+': '+(e?.message||'추가 검색 실패'));
       // 오류가 발생한 쪽은 다음 버튼을 남겨 재시도할 수 있도록 합니다.
+    }finally{
+      moreDone++;
+      updateSearchProgress({phase:'searching',done:moreDone,total:nextJobs.length,found:byUrl.size,errors:errors.length,more:true});
     }
   }
   results=uniqueVisualCards(uniqueHeadlines([...byUrl.values()].sort(
     (a,b)=>selectedTagCount(b,state.cats)-selectedTagCount(a,state.cats)
   )));
   busy=false;$('search').disabled=false;render();updateLoadMore();
+  updateSearchProgress({phase:errors.length===nextJobs.length?'failed':'done',done:moreDone,total:nextJobs.length,found:results.length,errors:errors.length,more:true});
   if(errors.length)setStatus('새 기사 일부 검색 실패: '+errors.join(' / ')+'. 기존 후보는 모두 유지했습니다.');
   else setStatus(results.length+'개 후보를 확인할 수 있습니다. 더 찾으려면 다음 기사 더 찾기를 눌러 주세요.');
 }
