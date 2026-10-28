@@ -69,8 +69,16 @@ button:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px soli
 @media (max-width: 570px) {
   .panel { box-shadow: 0 5px 16px #2842690c; }
 }
-.pitch{font-size:11px;font-weight:800;color:#296bc8}.originalname{font-size:11px;color:#657c97;background:#f0f5fd;border-radius:7px;padding:5px 8px;align-self:flex-start}.edited .input{margin:6px 0 12px}</style></head>
-<body><div class="shell"><header><div class="logo"><div class="mark">✦</div><div><h1>맘고리즘 콘텐츠 탐색기</h1><p class="sub">이승민 콘텐츠 조사 도구 · 검색 → 검토 → 후보 저장</p></div></div><span class="pill">모바일·웹 공유용 v4</span></header>
+.pitch{font-size:11px;font-weight:800;color:#296bc8}.originalname{font-size:11px;color:#657c97;background:#f0f5fd;border-radius:7px;padding:5px 8px;align-self:flex-start}.edited .input{margin:6px 0 12px}.theme-thumb{padding:22px 24px;min-height:220px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:8px;position:relative;overflow:hidden;background:linear-gradient(130deg,#deebff,#e9e1ff);color:#204b8d}
+.theme-thumb::after{content:'';position:absolute;width:165px;height:165px;border:2px solid currentColor;border-radius:50%;opacity:.11;top:-45px;right:-48px}
+.theme-thumb.tech{background:linear-gradient(140deg,#d8f6f0,#d9eaff);color:#126974}
+.theme-thumb.culture{background:linear-gradient(140deg,#f4e6ff,#ffe9ef);color:#764789}
+.theme-thumb.hobby{background:linear-gradient(140deg,#fff0d9,#f9e4dd);color:#825922}
+.thumb-emblem{width:39px;height:39px;border-radius:13px;display:grid;place-items:center;background:#ffffff91;font-size:24px}
+.thumb-eyebrow,.thumb-note{font-size:11px;font-weight:650;opacity:.73}
+.thumb-topic{font-size:clamp(21px,2.3vw,29px);line-height:1.25;word-break:keep-all;letter-spacing:-.035em;max-width:95%}
+</style></head>
+<body><div class="shell"><header><div class="logo"><div class="mark">✦</div><div><h1>맘고리즘 콘텐츠 탐색기</h1><p class="sub">이승민 콘텐츠 조사 도구 · 검색 → 검토 → 후보 저장</p></div></div><span class="pill">모바일·웹 공유용 v5</span></header>
 <div class="layout"><aside class="panel side"><h2>🔎 탐색 조건</h2><div class="sec"><label class="field">관심 분야 · 여러 개 선택 가능</label><div class="choices" id="cats"><label class="choice"><input type="checkbox" value="공부" checked>📘 공부</label><label class="choice"><input type="checkbox" value="기술" checked>💻 기술</label><label class="choice"><input type="checkbox" value="문화">🎬 문화</label><label class="choice"><input type="checkbox" value="취미">🎨 취미</label></div></div>
 <div class="sec"><label class="field">콘텐츠 형태 · 여러 개 선택 가능</label><div class="choices" id="forms"><label class="choice"><input type="checkbox" value="기사" checked>📰 기사·글</label><label class="choice"><input type="checkbox" value="영상" checked>▶ 영상</label></div></div>
 <div class="sec"><label class="field" for="keyword">세부 검색어 (선택)</label><input class="input" id="keyword" placeholder="예: 인공지능, 학습법, 영화" maxlength="100"><p class="tiny" style="margin-top:6px">입력하면 각 분야와 함께 검색해요.</p></div>
@@ -242,27 +250,93 @@ function compactSummary(description){
  const stop=Math.max(part.lastIndexOf('다.'),part.lastIndexOf('. '));
  return stop>260?part.slice(0,stop+2):part.slice(0,465).replace(/\s+\S*$/,'')+'…';
 }
+
+function cleanTopicName(value){
+  return tidy(value||'').replace(/^[^가-힣A-Za-z]+/,'')
+    .replace(/\s*\([^)]{1,90}\)\s*$/,'')
+    .replace(/\s+/g,' ').trim();
+}
+const TOPIC_HEADLINES=[
+  [/^(인공\s*신경망|인공신경망|신경망)$/, '뇌를 닮은 인공지능은 어떻게 배우는 걸까?'],
+  [/^(변연계|둘레\s*계통)$/, '감정과 기억은 뇌의 어디에서 연결될까?'],
+  [/^(기계\s*학습|머신러닝)$/, '컴퓨터는 어떻게 데이터를 보고 배울까?'],
+  [/^지도\s*학습$/, 'AI는 정답을 보고 어떻게 배울까?'],
+  [/^비지도\s*학습$/, '정답 없이도 데이터에서 규칙을 발견할 수 있을까?'],
+  [/^강화\s*학습$/, '보상을 받으며 배우는 AI의 비밀'],
+  [/^트랜스포머$/, '챗봇은 문장의 관계를 어떻게 이해할까?'],
+  [/^(심층\s*학습|딥\s*러닝)$/, 'AI가 여러 단계로 생각하는 것처럼 보이는 이유'],
+  [/^인공지능$/, '인공지능은 어떻게 판단하는 걸까?'],
+  [/^알고리즘$/, '추천 결과를 바꾸는 규칙의 정체'],
+  [/^메타인지$/, '내가 뭘 모르는지 아는 능력이 중요할까?'],
+  [/^주의력$/, '왜 우리는 모든 것에 집중하지 못할까?'],
+  [/^(집중|집중력)$/, '집중력은 왜 이렇게 쉽게 흐트러질까?'],
+  [/^(기억|기억력)$/, '왜 어떤 기억은 오래 남고 어떤 기억은 사라질까?'],
+  [/^뇌$/, '우리 머릿속에서는 어떤 일이 벌어질까?'],
+  [/^신경가소성$/, '경험이 쌓이면 뇌도 달라질까?'],
+  [/^(대뇌피질|대뇌\s*겉질)$/, '사고와 감각을 처리하는 뇌의 바깥층'],
+  [/^뉴런$/, '뇌세포는 어떻게 신호를 주고받을까?'],
+  [/^인지과학$/, '사람은 어떻게 생각하고 배우는 걸까?'],
+  [/^자연어\s*처리$/, '컴퓨터가 사람의 말을 다루는 방법'],
+  [/^정보\s*검색$/, '검색창은 어떤 원리로 답을 찾아낼까?'],
+  [/^퍼셉트론$/, '인공지능의 가장 단순한 판단 장치'],
+  [/^반도체$/, '작은 칩이 모든 전자기기를 움직이는 이유'],
+  [/^로봇$/, '로봇은 어떻게 주변을 감지하고 움직일까?'],
+  [/^프로그래밍$/, '코드 한 줄이 실제 동작이 되는 과정'],
+  [/^가상현실$/, '가짜 공간이 진짜처럼 느껴지는 이유'],
+  [/^음악$/, '소리는 언제 음악이 되는 걸까?'],
+  [/^사진$/, '한 장의 사진이 시간을 기록하는 방식'],
+  [/^영화$/, '영화는 장면과 소리로 어떻게 이야기를 만들까?'],
+  [/^애니메이션$/, '움직이지 않는 그림이 살아나는 원리'],
+  [/^디자인$/, '좋은 디자인은 어떤 문제를 해결할까?'],
+  [/^베이킹$/, '오븐 속 반죽은 왜 부풀어 오를까?'],
+  [/^요리$/, '재료가 맛있는 한 접시로 변하는 과정'],
+  [/^원예$/, '식물을 가꾸면서 알아가는 성장의 원리'],
+  [/^등산$/, '산을 오를 때 알아두면 좋은 기본 원리'],
+  [/^캠핑$/, '야외에서 보내는 하루를 준비하는 법']
+];
+function headlineSupported(headline,summary){
+  // 내용에 없는 '치료', '기적', '완벽한 해결' 같은 효능을 주장하지 않음
+  if(/치료|무조건|완벽|기적|100%/.test(headline))return false;
+  return hasUsefulSummary(summary);
+}
 function groundedHeadline(originalTitle,description){
- const raw=tidy(originalTitle||'');
- const desc=tidy(description||'').replace(/\([^()]{0,60}(?:영어|한자|독일어|일본어)[^()]*\)/g,'');
- const first=desc.split(/(?<=다[.!?])\s+|(?<=[.!?])\s+(?=[가-힣])/)[0]||'';
- if(first.length<38)return '';
- let meaning=first;
- if(meaning.startsWith(raw))meaning=meaning.slice(raw.length).replace(/^\s*(?:은|는|이|가|란|라는)?\s*/,'');
- meaning=meaning.trim().replace(/[.!?]+$/,'');
- if(meaning.length<25 || (meaning.match(/[가-힣]/g)||[]).length<16)return '';
- const extract=meaning.length>62?meaning.slice(0,60).replace(/\s+\S*$/,'')+'…':meaning;
- return extract+' — '+raw;
+ const raw=cleanTopicName(originalTitle);
+ const content=tidy(description||'');
+ if(!/^[가-힣]/.test(raw)||!hasUsefulSummary(content))return '';
+ const special=TOPIC_HEADLINES.find(([pattern])=>pattern.test(raw));
+ if(special && headlineSupported(special[1],content))return special[1];
+ // 편집 기준: 원문의 주제를 먼저 명확히 보여 주고, 실제 설명에 나타난 내용에 따라
+ // 다양한 형식의 짧은 질문을 제안합니다. 문장 전체를 잘라 붙이지 않습니다.
+ const patterns=[
+  [/영감을\s*얻|모방|본떠|영감/,()=>raw+'은 어디에서 아이디어를 얻었을까?'],
+  [/감정|기억|학습|인지/,()=>raw+'은 생각과 기억에 어떻게 연결될까?'],
+  [/신호|전달|연결/,()=>raw+'에서는 정보가 어떻게 전달될까?'],
+  [/데이터|자료|분석/,()=>raw+'은 데이터를 어떻게 활용할까?'],
+  [/원리|구조|작동|구성/,()=>raw+'의 구조에는 어떤 원리가 숨어 있을까?'],
+  [/종류|분류|유형|방식/,()=>raw+'에는 어떤 종류가 있을까?'],
+  [/역사|기원|등장|발달|발전/,()=>raw+'은 어떻게 등장하고 발전했을까?'],
+  [/영화|음악|미술|예술/,()=>raw+'을 새롭게 이해하는 관점'],
+  [/실험|관찰|측정/,()=>raw+'은 어떻게 관찰하고 확인할까?'],
+  [/사용|이용|활용|적용|쓰이/,()=>raw+'은 우리 생활에서 어디에 쓰일까?'],
+  [/특징|성질|차이/,()=>raw+'을 다른 개념과 구별하는 특징'],
+  [/운동|건강|활동/,()=>raw+'을 이해할 때 알아두면 좋은 것']
+ ];
+ for(const [re,build] of patterns){
+  if(re.test(content)){
+   const headline=build();
+   if(headline.length>=13&&headline.length<=65)return headline;
+  }
+ }
+ // 관련 내용을 확인할 근거가 부족하다면 한 단어짜리 제목을 강제로 노출하지 않습니다.
+ return '';
 }
 function prepareEditorialCard(item){
  if(item.source!=='한국어 위키백과')return item;
  if(!hasUsefulSummary(item.description))return null;
- if(!item.title || item.title===item.originalTitle){
-  const grounded=groundedHeadline(item.originalTitle,item.description);
-  if(!grounded)return null;
-  item.title=grounded;
-  item.titleStatus='원문 발췌 기반 · 검토 필요';
- }
+ const suggestion=groundedHeadline(item.originalTitle,item.description);
+ if(!suggestion)return null;
+ item.title=suggestion;
+ item.titleStatus='원문 검토 필요 · 자동 제목';
  return item;
 }
 function safeURL(s){try{const u=new URL(s);return ['https:','http:'].includes(u.protocol)?u.href:''}catch{return ''}}function tidy(s){return String(s||'').replace(/<[^>]+>/g,' ').replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/\s+/g,' ').trim()}function addText(parent,tag,text,cls){const e=document.createElement(tag);e.textContent=text||'';if(cls)e.className=cls;parent.append(e);return e}function srcName(type){return type==='영상'?'영상':'기사·글'}
@@ -335,11 +409,89 @@ async function wiki(category,term,max){
 async function commons(category,term,max){const q=term?`${term} ${category}`:category;const p=new URLSearchParams({action:'query',format:'json',origin:'*',generator:'search',gsrsearch:q,gsrnamespace:'6',gsrlimit:String(Math.min(max*3,40)),prop:'imageinfo',iiprop:'url|mime|extmetadata',iiurlwidth:'480'});const d=await wikiJSON('https://commons.wikimedia.org/w/api.php?'+p);if(d.error)throw Error(d.error.info||'API 오류');return Object.values(d.query?.pages||{}).filter(x=>{const i=x.imageinfo?.[0];return i&&(/^video\//.test(i.mime||'')||/\.(webm|ogv|ogg)$/i.test(x.title))&&looksKorean(x.title.replace(/^File:/,''))&&looksKorean(tidy(i.extmetadata?.ImageDescription?.value||''))}).slice(0,max).map(x=>{const i=x.imageinfo[0];return mkResult({id:'commons:'+x.pageid,title:x.title.replace(/^File:/,'').replace(/\.[^.]+$/,'').replaceAll('_',' '),url:i.descriptionurl||'https://commons.wikimedia.org/wiki/'+encodeURIComponent(x.title.replace(/ /g,'_')),thumbnail:i.thumburl||'',description:tidy(i.extmetadata?.ImageDescription?.value)||'Wikimedia Commons에 공개된 영상입니다. 원본을 확인하세요.',source:'Wikimedia Commons',form:'영상',category})});}
 async function youtube(category,term,max,key){const q=term?`${category} ${term}`:seeds[category];const p=new URLSearchParams({part:'snippet',q,type:'video',maxResults:String(Math.min(max,50)),regionCode:'KR',relevanceLanguage:'ko',key});const r=await fetch('/api/proxy?url='+encodeURIComponent('https://www.googleapis.com/youtube/v3/search?'+p),{signal:AbortSignal.timeout(18000)});const d=await r.json();if(!r.ok)throw Error(d.error?.message||`YouTube HTTP ${r.status}`);return (d.items||[]).filter(x=>x.id?.videoId).map(x=>mkResult({id:'yt:'+x.id.videoId,title:x.snippet?.title,url:'https://www.youtube.com/watch?v='+x.id.videoId,thumbnail:x.snippet?.thumbnails?.medium?.url||x.snippet?.thumbnails?.default?.url,description:x.snippet?.description,source:x.snippet?.channelTitle||'YouTube',form:'영상',category,date:x.snippet?.publishedAt}));}
 function setStatus(s){$('status').replaceChildren();if(s)$('status').append(typeof s==='string'?document.createTextNode(s):s);$('status').style.display=s?'':'none'}function isSaved(item){return saved.some(x=>x.url===item.url)}function actionButton(label,cl,click){const b=document.createElement('button');b.className=cl;b.textContent=label;b.addEventListener('click',click);return b}
-function card(x,isSavedView){const card=document.createElement('article');card.className='result';if(x.thumbnail){const img=document.createElement('img');img.className='thumb';img.src=x.thumbnail;img.alt='';img.loading='lazy';img.referrerPolicy='no-referrer';img.addEventListener('error',()=>{img.replaceWith(fallback(x.form))});card.append(img)}else card.append(fallback(x.form));const body=document.createElement('div');body.className='rbody';const tags=addText(body,'div','','tags');for(const cat of (x.tags||[]).slice(0,2)){addText(tags,'span',cat,'tag '+({공부:'study',기술:'tech',문화:'culture',취미:'hobby'}[cat]||''))}addText(tags,'span',srcName(x.form),'tag form');if(x.source==='한국어 위키백과')addText(body,'div',x.titleStatus==='원문 발췌 기반 · 검토 필요'?'✦ 원문 기반 제목 · 검토 필요':'✦ 주제별 제목 제안 · 원문 검토 필요','pitch');addText(body,'h3',x.title);if(x.originalTitle&&x.originalTitle!==x.title)addText(body,'div','원본 제목: '+x.originalTitle,'meta originalname');addText(body,'p',x.description||'원본에서 자세한 내용을 확인해 주세요.','desc');addText(body,'div',x.source+(x.date?' · '+x.date.slice(0,10):''),'meta');if(isSavedView){const box=addText(body,'div','','edited');addText(box,'label','추천 카드 제목 (직접 수정 가능)');const titleField=document.createElement('input');titleField.className='input';titleField.type='text';titleField.maxLength=100;titleField.value=x.title;titleField.setAttribute('aria-label','추천 카드 제목 수정');titleField.addEventListener('change',()=>{const edited=titleField.value.trim();if(!edited){titleField.value=x.title;return}updateSaved(x.url,{title:edited,titleStatus:'수동 수정'});render()});box.append(titleField);addText(box,'label','분야 수정 (최대 2개)');const select=document.createElement('select');for(const c of CAT){const op=document.createElement('option');op.value=c;op.textContent=c;select.append(op)}select.value=x.tags?.[0]||x.category;select.addEventListener('change',()=>{updateSaved(x.url,{tags:[select.value,...(x.tags||[]).filter(t=>t!==select.value)].slice(0,2)});render()});box.append(select);const second=document.createElement('select');for(const c of ['없음',...CAT]){const op=document.createElement('option');op.value=c;op.textContent=c==='없음'?'두 번째 분야 없음':c;second.append(op)}second.value=x.tags?.[1]||'없음';second.addEventListener('change',()=>{const first=select.value;const val=second.value;updateSaved(x.url,{tags:val==='없음'||val===first?[first]:[first,val]});render()});addText(box,'label','두 번째 분야');box.append(second);addText(box,'label','추천 이유 / 검토 메모');const area=document.createElement('textarea');area.className='input';area.value=x.reason||'';area.placeholder='이 콘텐츠를 추천할 이유를 작성하세요.';area.addEventListener('change',()=>updateSaved(x.url,{reason:area.value}));box.append(area);const verify=document.createElement('label');verify.style.display='flex';verify.style.alignItems='center';verify.style.gap='7px';const chk=document.createElement('input');chk.type='checkbox';chk.checked=!!x.verified;chk.addEventListener('change',()=>{updateSaved(x.url,{verified:chk.checked});render()});verify.append(chk,document.createTextNode('원본 링크·내용 직접 확인함'));box.append(verify);}
+
+// 출처 사진이 실제 주제와 연결되는지 보수적으로 검사합니다.
+// 불확실하거나 중복된 이미지는 고유한 '주제형 썸네일'로 대체합니다.
+const THUMB_ALIASES=[
+ [/^(기계\s*학습|머신러닝)$/,/(machine.?learning|ml.?overview|classification|overfitting|learning.?algorithm)/i],
+ [/^강화\s*학습$/,/(reinforcement|q.?learning|agent.?environment|reward.?learning)/i],
+ [/^지도\s*학습$/,/(supervised.?learning|classification.?training)/i],
+ [/^비지도\s*학습$/,/(unsupervised|clustering|cluster.?analysis)/i],
+ [/^(인공\s*신경망|인공신경망)$/,/(neural.?network|artificial.?neuron|perceptron|ann.?diagram)/i],
+ [/^변연계$/,/(limbic|hippocampus|amygdala|brain.?sagittal)/i],
+ [/^트랜스포머$/,/(transformer|attention.?mechanism)/i],
+ [/^알고리즘$/,/(algorithm|flowchart)/i],
+ [/^반도체$/,/(semiconductor|chip|silicon)/i],
+ [/^뇌$/,/(brain|cerebrum)/i],
+ [/^영화$/,/(cinema|film|movie)/i],
+ [/^사진$/,/(photograph|camera)/i]
+];
+function normalizedImageKey(link){
+ if(!link)return '';
+ try{
+  const url=new URL(link);
+  const path=decodeURIComponent(url.pathname);
+  // Wikimedia thumb URLs 끝에 붙는 사이즈는 달라도 같은 원본으로 취급
+  const name=path.split('/').filter(Boolean);
+  const thumbAt=name.indexOf('thumb');
+  const original=thumbAt>=0&&name.length>=2?name[name.length-2]:name[name.length-1];
+  return (url.hostname.replace(/^upload\./,'')+'/'+original).replace(/^\d+px-/,'').toLowerCase();
+ }catch(e){return String(link).split('?')[0].toLowerCase()}
+}
+function photoRelevance(item){
+ if(!item.thumbnail)return 0;
+ if(item.source!=='한국어 위키백과')return 1;
+ let file='';
+ try{file=decodeURIComponent(new URL(item.thumbnail).pathname).toLowerCase()}catch(e){return 0}
+ const raw=cleanTopicName(item.originalTitle||item.title).toLowerCase();
+ if(raw.length>2&&file.includes(raw.replace(/\s/g,'_')))return 4;
+ const alias=THUMB_ALIASES.find(([re])=>re.test(raw));
+ if(alias)return alias[1].test(file)?3:0;
+ // 고유명사가 아닌 도표 등을 무조건 정확한 사진으로 단정하지 않습니다.
+ return 0;
+}
+function uniqueVisualCards(items){
+ const chosen=new Map();
+ items.forEach((item,index)=>{
+  const key=normalizedImageKey(item.thumbnail);
+  if(!key||photoRelevance(item)<=0)return;
+  const score=photoRelevance(item);
+  const prev=chosen.get(key);
+  if(!prev||score>prev.score)chosen.set(key,{index,score});
+ });
+ return items.map((item,index)=>{
+  const key=normalizedImageKey(item.thumbnail);
+  if(!key||photoRelevance(item)<=0||chosen.get(key)?.index!==index)
+   return {...item,thumbnail:''};
+  return item;
+ });
+}
+function themeThumb(item){
+ const topic=cleanTopicName(item.originalTitle||item.title)||'탐구 주제';
+ const category=item.tags?.[0]||item.category||'공부';
+ const visual={
+  '공부':{icon:'✦',type:'배움 · 탐구',cls:'study'},
+  '기술':{icon:'⌘',type:'기술 · 원리',cls:'tech'},
+  '문화':{icon:'◈',type:'문화 · 이야기',cls:'culture'},
+  '취미':{icon:'✳',type:'취미 · 발견',cls:'hobby'}
+ }[category]||{icon:'✦',type:'탐구 주제',cls:'study'};
+ const el=document.createElement('div');
+ el.className='thumb theme-thumb '+visual.cls;
+ el.setAttribute('role','img');
+ el.setAttribute('aria-label',topic+' 주제 안내 이미지');
+ const icon=document.createElement('div');icon.className='thumb-emblem';icon.textContent=visual.icon;
+ const categoryLabel=document.createElement('span');categoryLabel.className='thumb-eyebrow';categoryLabel.textContent=visual.type;
+ const title=document.createElement('strong');title.className='thumb-topic';title.textContent=topic.length>28?topic.slice(0,26)+'…':topic;
+ const foot=document.createElement('span');foot.className='thumb-note';foot.textContent='원문 주제 기반 · 전용 그래픽';
+ el.append(icon,categoryLabel,title,foot);
+ return el;
+}
+
+function card(x,isSavedView){const card=document.createElement('article');card.className='result';if(x.thumbnail){const img=document.createElement('img');img.className='thumb';img.src=x.thumbnail;img.alt=(x.originalTitle||x.title)+' 관련 자료 이미지';img.loading='lazy';img.referrerPolicy='no-referrer';img.addEventListener('error',()=>{img.replaceWith(themeThumb(x))});card.append(img)}else card.append(themeThumb(x));const body=document.createElement('div');body.className='rbody';const tags=addText(body,'div','','tags');for(const cat of (x.tags||[]).slice(0,2)){addText(tags,'span',cat,'tag '+({공부:'study',기술:'tech',문화:'culture',취미:'hobby'}[cat]||''))}addText(tags,'span',srcName(x.form),'tag form');if(x.source==='한국어 위키백과')addText(body,'div',x.titleStatus==='원문 발췌 기반 · 검토 필요'?'✦ 원문 기반 제목 · 검토 필요':'✦ 주제별 제목 제안 · 원문 검토 필요','pitch');addText(body,'h3',x.title);if(x.originalTitle&&x.originalTitle!==x.title)addText(body,'div','원본 제목: '+x.originalTitle,'meta originalname');addText(body,'p',x.description||'원본에서 자세한 내용을 확인해 주세요.','desc');addText(body,'div',x.source+(x.date?' · '+x.date.slice(0,10):''),'meta');if(isSavedView){const box=addText(body,'div','','edited');addText(box,'label','추천 카드 제목 (직접 수정 가능)');const titleField=document.createElement('input');titleField.className='input';titleField.type='text';titleField.maxLength=100;titleField.value=x.title;titleField.setAttribute('aria-label','추천 카드 제목 수정');titleField.addEventListener('change',()=>{const edited=titleField.value.trim();if(!edited){titleField.value=x.title;return}updateSaved(x.url,{title:edited,titleStatus:'수동 수정'});render()});box.append(titleField);addText(box,'label','분야 수정 (최대 2개)');const select=document.createElement('select');for(const c of CAT){const op=document.createElement('option');op.value=c;op.textContent=c;select.append(op)}select.value=x.tags?.[0]||x.category;select.addEventListener('change',()=>{updateSaved(x.url,{tags:[select.value,...(x.tags||[]).filter(t=>t!==select.value)].slice(0,2)});render()});box.append(select);const second=document.createElement('select');for(const c of ['없음',...CAT]){const op=document.createElement('option');op.value=c;op.textContent=c==='없음'?'두 번째 분야 없음':c;second.append(op)}second.value=x.tags?.[1]||'없음';second.addEventListener('change',()=>{const first=select.value;const val=second.value;updateSaved(x.url,{tags:val==='없음'||val===first?[first]:[first,val]});render()});addText(box,'label','두 번째 분야');box.append(second);addText(box,'label','추천 이유 / 검토 메모');const area=document.createElement('textarea');area.className='input';area.value=x.reason||'';area.placeholder='이 콘텐츠를 추천할 이유를 작성하세요.';area.addEventListener('change',()=>updateSaved(x.url,{reason:area.value}));box.append(area);const verify=document.createElement('label');verify.style.display='flex';verify.style.alignItems='center';verify.style.gap='7px';const chk=document.createElement('input');chk.type='checkbox';chk.checked=!!x.verified;chk.addEventListener('change',()=>{updateSaved(x.url,{verified:chk.checked});render()});verify.append(chk,document.createTextNode('원본 링크·내용 직접 확인함'));box.append(verify);}
 const acts=addText(body,'div','','actions');const link=document.createElement('a');link.href=x.url;link.target='_blank';link.rel='noopener noreferrer';link.className='secondary';link.textContent='↗ 원본 열기';acts.append(link);if(isSavedView)acts.append(actionButton('보관함에서 삭제','ghost',()=>{if(confirm('이 후보를 보관함에서 삭제할까요?')){saved=saved.filter(y=>y.url!==x.url);persist();render()}}));else acts.append(actionButton(isSaved(x)?'✓ 저장됨':'+ 후보 저장','primary',()=>{if(!isSaved(x)){saved.unshift({...x});persist()}render()}));card.append(body);return card}
 function fallback(form){const d=addText(document.createElement('div'),'div',form==='영상'?'▶ VIDEO':'▧ ARTICLE','thumb thumbfallback');return d}function updateSaved(url,patch){saved=saved.map(y=>y.url===url?{...y,...patch}:y);persist()}
-function render(){const active=tab==='saved';$('tabResults').classList.toggle('on',!active);$('tabSaved').classList.toggle('on',active);$('savedCount').textContent=saved.length;const arr=active?saved:results;const grid=$('results');grid.replaceChildren();if(active){setStatus(saved.length?`${saved.length}개 후보를 보관하고 있습니다. 저장 내용은 현재 브라우저에만 남아요.`:'아직 저장한 후보가 없습니다. 검색 결과에서 후보 저장을 눌러주세요.')}else if(!busy){setStatus(results.length?`${results.length}개 한국어 콘텐츠를 찾았습니다.${lastSearchCats.length>1?' 선택한 분야가 2개 이상 일치하는 카드를 우선 표시합니다.':''} 분류와 원본 내용을 검토한 후 저장하세요.`:'자동 검색 결과가 없습니다. 아래 웹 검색 링크를 이용해 주세요.')}if(!arr.length){grid.append(addText(document.createElement('div'),'div',active?'보관함이 비어 있어요.':'표시할 검색 결과가 없어요.','empty'));grid.lastElementChild.style.gridColumn='1/-1';return}for(const x of arr)grid.append(card(x,active))}
-async function search(){if(busy)return;const cats=selected('cats'),forms=selected('forms'),term=$('keyword').value.trim(),max=Number($('limit').value),key=$('youtubeKey').value.trim();if(!cats.length||!forms.length){alert('분야와 콘텐츠 형태를 하나 이상 선택해 주세요.');return}busy=true;results=[];lastSearchCats=cats.slice();tab='results';$('search').disabled=true;document.querySelectorAll('.transientSearchMessage').forEach(el=>el.remove());const loading=document.createElement('span');loading.className='loading';loading.innerHTML='<span class="spinner"></span>실제 인터넷에서 콘텐츠를 찾는 중...';setStatus(loading);$('results').replaceChildren();const jobs=[];for(const cat of cats){if(forms.includes('기사'))jobs.push({cat,kind:'위키백과',run:()=>wiki(cat,term,max)});if(forms.includes('영상')){jobs.push({cat,kind:'Wikimedia 영상',run:()=>commons(cat,term,max)});if(key)jobs.push({cat,kind:'YouTube',run:()=>youtube(cat,term,max,key)})}}const settled=await Promise.allSettled(jobs.map(j=>j.run()));const errs=[];const uniq=new Map();settled.forEach((r,i)=>{if(r.status==='fulfilled'){for(const x of r.value){if(!x.url)continue;const old=uniq.get(x.url);if(old){old.tags=Array.from(new Set([...old.tags,...x.tags])).slice(0,2)}else uniq.set(x.url,x)}}else errs.push(`${jobs[i].cat} ${jobs[i].kind}: ${r.reason?.message||'연결 실패'}`)});results=uniqueHeadlines(Array.from(uniq.values()).filter(item=>isRelevantCandidate(item,cats)).map(prepareEditorialCard).filter(Boolean));
+function render(){const active=tab==='saved';$('tabResults').classList.toggle('on',!active);$('tabSaved').classList.toggle('on',active);$('savedCount').textContent=saved.length;const arr=uniqueVisualCards(active?saved:results);const grid=$('results');grid.replaceChildren();if(active){setStatus(saved.length?`${saved.length}개 후보를 보관하고 있습니다. 저장 내용은 현재 브라우저에만 남아요.`:'아직 저장한 후보가 없습니다. 검색 결과에서 후보 저장을 눌러주세요.')}else if(!busy){setStatus(results.length?`${results.length}개 한국어 콘텐츠를 찾았습니다.${lastSearchCats.length>1?' 선택한 분야가 2개 이상 일치하는 카드를 우선 표시합니다.':''} 분류와 원본 내용을 검토한 후 저장하세요.`:'자동 검색 결과가 없습니다. 아래 웹 검색 링크를 이용해 주세요.')}if(!arr.length){grid.append(addText(document.createElement('div'),'div',active?'보관함이 비어 있어요.':'표시할 검색 결과가 없어요.','empty'));grid.lastElementChild.style.gridColumn='1/-1';return}for(const x of arr)grid.append(card(x,active))}
+async function search(){if(busy)return;const cats=selected('cats'),forms=selected('forms'),term=$('keyword').value.trim(),max=Number($('limit').value),key=$('youtubeKey').value.trim();if(!cats.length||!forms.length){alert('분야와 콘텐츠 형태를 하나 이상 선택해 주세요.');return}busy=true;results=[];lastSearchCats=cats.slice();tab='results';$('search').disabled=true;document.querySelectorAll('.transientSearchMessage').forEach(el=>el.remove());const loading=document.createElement('span');loading.className='loading';loading.innerHTML='<span class="spinner"></span>실제 인터넷에서 콘텐츠를 찾는 중...';setStatus(loading);$('results').replaceChildren();const jobs=[];for(const cat of cats){if(forms.includes('기사'))jobs.push({cat,kind:'위키백과',run:()=>wiki(cat,term,max)});if(forms.includes('영상')){jobs.push({cat,kind:'Wikimedia 영상',run:()=>commons(cat,term,max)});if(key)jobs.push({cat,kind:'YouTube',run:()=>youtube(cat,term,max,key)})}}const settled=await Promise.allSettled(jobs.map(j=>j.run()));const errs=[];const uniq=new Map();settled.forEach((r,i)=>{if(r.status==='fulfilled'){for(const x of r.value){if(!x.url)continue;const old=uniq.get(x.url);if(old){old.tags=Array.from(new Set([...old.tags,...x.tags])).slice(0,2)}else uniq.set(x.url,x)}}else errs.push(`${jobs[i].cat} ${jobs[i].kind}: ${r.reason?.message||'연결 실패'}`)});results=uniqueVisualCards(uniqueHeadlines(Array.from(uniq.values()).filter(item=>isRelevantCandidate(item,cats)).map(prepareEditorialCard).filter(Boolean)));
 if(cats.length>1){
   // 여러 분야를 선택한 경우, 선택 분야가 두 개 일치하는 카드를 먼저 표시.
   // 같은 점수의 후보는 검색 API가 반환한 기존 순서를 유지합니다.
