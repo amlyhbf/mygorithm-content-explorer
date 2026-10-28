@@ -291,6 +291,12 @@ function headlineSupported(headline,summary){
   if(/치료|무조건|완벽|기적|100%/.test(headline))return false;
   return hasUsefulSummary(summary);
 }
+function attachParticle(topic,consonant,vowel){
+ const found=[...topic].reverse().find(c=>/[가-힣]/.test(c));
+ if(!found)return topic+vowel;
+ const code=found.charCodeAt(0)-0xac00;
+ return topic+(code%28===0?vowel:consonant);
+}
 function groundedHeadline(originalTitle,description){
  const raw=cleanTopicName(originalTitle);
  const content=tidy(description||'');
@@ -300,18 +306,18 @@ function groundedHeadline(originalTitle,description){
  // 편집 기준: 원문의 주제를 먼저 명확히 보여 주고, 실제 설명에 나타난 내용에 따라
  // 다양한 형식의 짧은 질문을 제안합니다. 문장 전체를 잘라 붙이지 않습니다.
  const patterns=[
-  [/영감을\s*얻|모방|본떠|영감/,()=>raw+'은 어디에서 아이디어를 얻었을까?'],
-  [/감정|기억|학습|인지/,()=>raw+'은 생각과 기억에 어떻게 연결될까?'],
+  [/영감을\s*얻|모방|본떠|영감/,()=>attachParticle(raw,'은','는')+' 어디에서 아이디어를 얻었을까?'],
+  [/감정|기억|학습|인지/,()=>attachParticle(raw,'은','는')+' 생각과 기억에 어떻게 연결될까?'],
   [/신호|전달|연결/,()=>raw+'에서는 정보가 어떻게 전달될까?'],
-  [/데이터|자료|분석/,()=>raw+'은 데이터를 어떻게 활용할까?'],
+  [/데이터|자료|분석/,()=>attachParticle(raw,'은','는')+' 데이터를 어떻게 활용할까?'],
   [/원리|구조|작동|구성/,()=>raw+'의 구조에는 어떤 원리가 숨어 있을까?'],
   [/종류|분류|유형|방식/,()=>raw+'에는 어떤 종류가 있을까?'],
-  [/역사|기원|등장|발달|발전/,()=>raw+'은 어떻게 등장하고 발전했을까?'],
-  [/영화|음악|미술|예술/,()=>raw+'을 새롭게 이해하는 관점'],
-  [/실험|관찰|측정/,()=>raw+'은 어떻게 관찰하고 확인할까?'],
-  [/사용|이용|활용|적용|쓰이/,()=>raw+'은 우리 생활에서 어디에 쓰일까?'],
-  [/특징|성질|차이/,()=>raw+'을 다른 개념과 구별하는 특징'],
-  [/운동|건강|활동/,()=>raw+'을 이해할 때 알아두면 좋은 것']
+  [/역사|기원|등장|발달|발전/,()=>attachParticle(raw,'은','는')+' 어떻게 등장하고 발전했을까?'],
+  [/영화|음악|미술|예술/,()=>attachParticle(raw,'을','를')+' 새롭게 이해하는 관점'],
+  [/실험|관찰|측정/,()=>attachParticle(raw,'은','는')+' 어떻게 관찰하고 확인할까?'],
+  [/사용|이용|활용|적용|쓰이/,()=>attachParticle(raw,'은','는')+' 우리 생활에서 어디에 쓰일까?'],
+  [/특징|성질|차이/,()=>attachParticle(raw,'을','를')+' 다른 개념과 구별하는 특징'],
+  [/운동|건강|활동/,()=>attachParticle(raw,'을','를')+' 이해할 때 알아두면 좋은 것']
  ];
  for(const [re,build] of patterns){
   if(re.test(content)){
