@@ -128,15 +128,33 @@ button:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px soli
  .sp-bar-fill{transition:none}
 }
 
+
+/* 마지막 기능: 재탐색과 브라우저 내부 선호 반영 */
+.reroll-button{padding:9px 13px;border:1px solid #bbcff7;border-radius:11px;background:#eef4ff;
+ color:#295bb7;font-size:12px;font-weight:800;white-space:nowrap}
+.reroll-button:hover:not(:disabled){background:#dfeaff;border-color:#80a9fa}
+.reroll-button:focus-visible,.preference-line:focus-within{outline:2px solid #3778ed;outline-offset:3px}
+.reroll-button:disabled{opacity:.55}
+.preference-control{border:1px solid #d7e4f5;background:linear-gradient(135deg,#f8fbff,#f5f2ff);
+ border-radius:12px;padding:11px 12px;margin:10px 0 16px}
+.preference-line{display:flex;align-items:flex-start;gap:10px;cursor:pointer;color:#284469}
+.preference-line input{width:17px;height:17px;accent-color:#3977e9;flex:none;margin-top:4px}
+.preference-line span{display:flex;flex-direction:column;gap:2px}
+.preference-line strong{font-size:12px;line-height:1.5}
+.preference-line small{color:#69809d;font-size:10px;line-height:1.4}
+.preference-summary{border-top:1px solid #dde8f7;margin-top:9px;padding-top:8px;color:#516c94;font-size:11px;line-height:1.5}
+.personalized-hint{color:#3264b0;font-size:11px;font-weight:650;margin-top:3px}
+@media(max-width:570px){.tabs{flex-wrap:wrap}.reroll-button{flex:1;min-width:120px}}
 </style></head>
-<body><div class="shell"><header><div class="logo"><div class="mark">✦</div><div><h1>맘고리즘 콘텐츠 탐색기</h1><p class="sub">이승민 콘텐츠 조사 도구 · 검색 → 검토 → 후보 저장</p></div></div><span class="pill">모바일·웹 공유용 v10</span></header>
+<body><div class="shell"><header><div class="logo"><div class="mark">✦</div><div><h1>맘고리즘 콘텐츠 탐색기</h1><p class="sub">이승민 콘텐츠 조사 도구 · 검색 → 검토 → 후보 저장</p></div></div><span class="pill">모바일·웹 공유용 v11</span></header>
 <div class="layout"><aside class="panel side"><h2>🔎 탐색 조건</h2><div class="sec"><label class="field">관심 분야 · 여러 개 선택 가능</label><div class="choices" id="cats"><label class="choice"><input type="checkbox" value="공부" checked>📘 공부</label><label class="choice"><input type="checkbox" value="기술" checked>💻 기술</label><label class="choice"><input type="checkbox" value="문화">🎬 문화</label><label class="choice"><input type="checkbox" value="취미">🎨 취미</label></div></div>
 <div class="sec"><label class="field">콘텐츠 형태 · 여러 개 선택 가능</label><div class="choices" id="forms"><label class="choice"><input type="checkbox" value="기사" checked>📰 기사·글</label><label class="choice"><input type="checkbox" value="영상" checked>▶ 영상</label></div></div>
 <div class="sec"><label class="field" for="keyword">세부 검색어 (선택)</label><input class="input" id="keyword" placeholder="예: 인공지능, 학습법, 영화" maxlength="100"><p class="tiny" style="margin-top:6px">입력하면 각 분야와 함께 검색해요.</p></div>
 <div class="sec"><label class="field" for="limit">분야당 결과 수</label><select id="limit" class="input"><option value="5">5개</option><option value="10" selected>10개</option><option value="15">15개</option></select></div>
-<button id="search" class="primary full">✨ 후보 콘텐츠 찾기</button><div class="notice">이 웹사이트는 검색 서버를 통해 관련 콘텐츠를 찾습니다. 후보는 현재 사용 중인 브라우저에만 저장되므로, 다른 기기로 옮길 때는 CSV 내보내기·불러오기를 사용하세요.</div>
+<button id="search" class="primary full">✨ 후보 콘텐츠 찾기</button>
+<div class="preference-control"><label class="preference-line"><input id="personalize" type="checkbox" checked><span><strong>보관함 취향 반영</strong><small>내가 저장한 카드와 비슷한 주제를 우선 추천</small></span></label><div id="preferenceSummary" class="preference-summary">아직 저장한 카드가 없어요.</div></div><div class="notice">이 웹사이트는 검색 서버를 통해 관련 콘텐츠를 찾습니다. 후보는 현재 사용 중인 브라우저에만 저장되므로, 다른 기기로 옮길 때는 CSV 내보내기·불러오기를 사용하세요.</div>
 <details class="config"><summary>⚙ 유튜브 API 키 입력 (로컬 테스트 전용)</summary><p>공개 웹사이트에서는 개인 API 키를 입력하지 마세요. 현재 유튜브 검색은 키 없이 Wikimedia Commons 영상만 자동 검색합니다. 유튜브 연동은 추후 서버에서 키를 관리하는 방식으로 추가할 수 있어요.</p><input type="password" id="youtubeKey" class="input" placeholder="공개 배포용 버전: 입력 비활성화" autocomplete="off" disabled><p><a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener noreferrer">Google Cloud에서 API 확인</a></p></details>
-</aside><main><div class="topbar"><div class="tabs"><button id="tabResults" class="tab on">검색 결과</button><button id="tabSaved" class="tab">후보 보관함 <span id="savedCount">0</span></button></div><div class="savehead"><button id="export" class="secondary">⬇ CSV 내보내기</button><button id="importBtn" class="ghost">⬆ CSV 불러오기</button><input id="importFile" type="file" accept=".csv,text/csv" hidden></div></div>
+</aside><main><div class="topbar"><div class="tabs"><button id="tabResults" class="tab on">검색 결과</button><button id="tabSaved" class="tab">후보 보관함 <span id="savedCount">0</span></button><button id="reroll" class="reroll-button" type="button" title="같은 검색 조건에서 이전에 본 카드를 제외하고 새로운 후보를 찾습니다." hidden disabled>↻ 다시 찾아보기</button></div><div class="savehead"><button id="export" class="secondary">⬇ CSV 내보내기</button><button id="importBtn" class="ghost">⬆ CSV 불러오기</button><input id="importFile" type="file" accept=".csv,text/csv" hidden></div></div>
 <div id="status" class="status">왼쪽에서 분야와 콘텐츠 형태를 선택하고 <strong>후보 콘텐츠 찾기</strong>를 눌러주세요.</div>
 <section id="searchProgress" class="search-progress" hidden aria-label="콘텐츠 검색 진행 상황" aria-busy="false">
  <div class="sp-heading-row">
@@ -198,7 +216,74 @@ const STORE='mygorithm-research-v1';let saved=[],results=[],tab='results',busy=f
   if(['수동 수정','승민 검토','CSV 가져옴','본문 발췌 기반 · 승민 검토 필요'].includes(x.titleStatus))return x;
   const newTitle=groundedHeadline(sourceTitle,x.description)||sourceTitle;
   return {...x,originalTitle:sourceTitle,title:newTitle,titleStatus:newTitle===sourceTitle?'편집 필요':'원문 검토 필요 · 자동 제목'};
-}):[]}catch{return []}}function persist(){try{localStorage.setItem(STORE,JSON.stringify(saved))}catch{alert('브라우저 저장 공간을 사용할 수 없습니다. CSV로 내보내 저장해주세요.')} $('savedCount').textContent=saved.length}
+}):[]}catch{return []}}function persist(){try{localStorage.setItem(STORE,JSON.stringify(saved))}catch{alert('브라우저 저장 공간을 사용할 수 없습니다. CSV로 내보내 저장해주세요.')} $('savedCount').textContent=saved.length;updatePreferenceSummary()}
+
+/* 보관함 자체가 개인화 데이터입니다. 서버 전송·외부 모델 학습 없이 즉시 계산합니다. */
+const PREFERENCE_STOPWORDS=new Set(['그리고','그러나','또는','하지만','때문','대한','이러한','이렇게','관한','관련','기반','통해','에서','까지','하는','있다','있으며','것이다','어떤','어떻게','새로운','이야기','이유','무엇','학생','사람','위키백과','한국어','위해서','사용','다양한','중요한','내용','기술','문화','공부','취미','영상','기사','방법','원리','학습']);
+function preferenceTokens(value){
+ return (String(value||'').toLowerCase().match(/[가-힣]{2,}|[a-z]{4,}/g)||[])
+  .filter(w=>w.length>=2&&w.length<=16&&!PREFERENCE_STOPWORDS.has(w));
+}
+function preferenceProfile(cards=saved){
+ const cats=new Map(),forms=new Map(),words=new Map();
+ for(const item of cards){
+  for(const cat of new Set((item.tags||[]).filter(x=>CAT.includes(x))))cats.set(cat,(cats.get(cat)||0)+1);
+  if(item.form)forms.set(item.form,(forms.get(item.form)||0)+1);
+  // 원제목은 편집된 제목보다 주제를 정확하게 나타내므로 더 크게 반영합니다.
+  const raw=new Set(preferenceTokens(item.originalTitle||item.title));
+  const title=new Set(preferenceTokens(item.title));
+  const summary=new Set(preferenceTokens(item.description).slice(0,30));
+  for(const word of raw)words.set(word,(words.get(word)||0)+3);
+  for(const word of title)words.set(word,(words.get(word)||0)+1.5);
+  for(const word of summary)words.set(word,(words.get(word)||0)+.22);
+ }
+ return {total:cards.length,cats,forms,words,
+   keywords:[...words].sort((a,b)=>b[1]-a[1]).slice(0,12).map(([word])=>word)};
+}
+function preferenceMatch(item,profile=preferenceProfile()){
+ if(!$('personalize').checked||!profile.total)return {score:0,reason:''};
+ const itemCats=(item.tags||[]).filter(x=>CAT.includes(x));
+ let score=itemCats.reduce((n,c)=>n+Math.min(2.1,(profile.cats.get(c)||0)*.6),0);
+ score+=Math.min(1.1,(profile.forms.get(item.form)||0)*.22);
+ const topicTokens=new Set(preferenceTokens((item.originalTitle||'')+' '+(item.title||'')));
+ const bodyTokens=new Set(preferenceTokens(item.description).slice(0,60));
+ const matched=[];
+ for(const word of profile.keywords){
+  if(topicTokens.has(word)){score+=Math.min(3,profile.words.get(word)*.8);matched.push(word)}
+  else if(bodyTokens.has(word)){score+=Math.min(.8,profile.words.get(word)*.12)}
+ }
+ const leadingCategory=[...profile.cats].filter(([c])=>itemCats.includes(c)).sort((a,b)=>b[1]-a[1])[0]?.[0];
+ return {score:Math.min(score,12),reason:matched.length?'저장한 카드의 '+matched.slice(0,2).join('·')+' 주제와 연결됨':leadingCategory?leadingCategory+' 분야 선호가 반영됨':''};
+}
+function rankForUser(items,cats=lastSearchCats){
+ const profile=preferenceProfile();
+ return items.map((item,index)=>{
+  const match=preferenceMatch(item,profile);
+  return {...item,preferenceReason:match.reason,preferenceScore:match.score,_rankIndex:index};
+ }).sort((a,b)=>selectedTagCount(b,cats)-selectedTagCount(a,cats)
+  ||(b.preferenceScore-a.preferenceScore)||a._rankIndex-b._rankIndex)
+   .map(({_rankIndex,...item})=>item);
+}
+function preferredSearchJobs(cats,term,max){
+ if(saved.length<2||!$('personalize').checked||term)return [];
+ const profile=preferenceProfile();
+ return profile.keywords.filter(w=>w.length>=3).slice(0,2).map((word,i)=>{
+  const cat=[...profile.cats].filter(([c])=>cats.includes(c)).sort((a,b)=>b[1]-a[1])[0]?.[0]||cats[0];
+  const spec={key:'preferred:'+i,cat,category:cat,kind:'위키백과',max:Math.min(max,6),
+   query:word,pair:null,cursor:null,label:'저장한 카드와 연관된 '+word+' 검색'};
+  spec.run=()=>wiki(cat,term,spec.max,null,word,[cat]);return spec;
+ });
+}
+function updatePreferenceSummary(){
+ const target=$('preferenceSummary');if(!target)return;
+ const profile=preferenceProfile(),enabled=$('personalize').checked;
+ const topics=[...profile.cats].sort((a,b)=>b[1]-a[1]).slice(0,2).map(([c,n])=>c+' '+n+'개');
+ target.textContent=!profile.total?'보관함에 카드를 저장하면 선호 분야·주제를 반영해요.':
+   !enabled?'현재 취향 반영이 꺼져 있어요. 저장한 후보는 그대로 유지돼요.':
+   '저장 '+profile.total+'개 분석 · '+(topics.join(', ')||'분야 미분류')+
+   (profile.keywords.length?' · 관심 주제: '+profile.keywords.slice(0,3).join('·'):'');
+}
+
 function selected(id){return Array.from($(id).querySelectorAll('input:checked')).map(x=>x.value)}function makeTags(text,primary,all){const matching=all.filter(cat=>topicMatches(text,cat).length);return [primary,...matching.filter(x=>x!==primary)].filter(x=>all.includes(x)).slice(0,2)}
 
 const DOMAIN_SIGNALS={
@@ -821,7 +906,7 @@ function themeThumb(item){
  return el;
 }
 
-function card(x,isSavedView){const card=document.createElement('article');card.className='result';if(x.thumbnail){const img=document.createElement('img');img.className='thumb';img.src=x.thumbnail;img.alt=(x.originalTitle||x.title)+' 관련 자료 이미지';img.loading='lazy';img.referrerPolicy='no-referrer';img.addEventListener('error',()=>{img.replaceWith(themeThumb(x))});card.append(img)}else card.append(themeThumb(x));const body=document.createElement('div');body.className='rbody';const tags=addText(body,'div','','tags');for(const cat of (x.tags||[]).slice(0,2)){addText(tags,'span',cat,'tag '+({공부:'study',기술:'tech',문화:'culture',취미:'hobby'}[cat]||''))}addText(tags,'span',srcName(x.form),'tag form');if((x.tags||[]).length>1)addText(tags,'span','✦ 복합 분야','tag mix');if(x.source==='한국어 위키백과')addText(body,'div',x.titleStatus==='본문 발췌 기반 · 승민 검토 필요'?'✦ 학생 관심 구간 발췌 · 검토 필요':x.titleStatus==='원문 발췌 기반 · 검토 필요'?'✦ 원문 기반 제목 · 검토 필요':'✦ 주제별 제목 제안 · 원문 검토 필요','pitch');addText(body,'h3',x.title);if(x.originalTitle&&x.originalTitle!==x.title)addText(body,'div','원본 제목: '+x.originalTitle,'meta originalname');addText(body,'p',x.description||'원본에서 자세한 내용을 확인해 주세요.','desc');if(x.evidence)addText(body,'div','분야 연결 근거: '+x.evidence,'meta evidence');addText(body,'div',x.source+(x.date?' · '+x.date.slice(0,10):''),'meta');if(isSavedView){const box=addText(body,'div','','edited');addText(box,'label','추천 카드 제목 (직접 수정 가능)');const titleField=document.createElement('input');titleField.className='input';titleField.type='text';titleField.maxLength=100;titleField.value=x.title;titleField.setAttribute('aria-label','추천 카드 제목 수정');titleField.addEventListener('change',()=>{const edited=titleField.value.trim();if(!edited){titleField.value=x.title;return}updateSaved(x.url,{title:edited,titleStatus:'수동 수정'});render()});box.append(titleField);addText(box,'label','분야 수정 (최대 2개)');const select=document.createElement('select');for(const c of CAT){const op=document.createElement('option');op.value=c;op.textContent=c;select.append(op)}select.value=x.tags?.[0]||x.category;select.addEventListener('change',()=>{updateSaved(x.url,{tags:[select.value,...(x.tags||[]).filter(t=>t!==select.value)].slice(0,2)});render()});box.append(select);const second=document.createElement('select');for(const c of ['없음',...CAT]){const op=document.createElement('option');op.value=c;op.textContent=c==='없음'?'두 번째 분야 없음':c;second.append(op)}second.value=x.tags?.[1]||'없음';second.addEventListener('change',()=>{const first=select.value;const val=second.value;updateSaved(x.url,{tags:val==='없음'||val===first?[first]:[first,val]});render()});addText(box,'label','두 번째 분야');box.append(second);addText(box,'label','추천 이유 / 검토 메모');const area=document.createElement('textarea');area.className='input';area.value=x.reason||'';area.placeholder='이 콘텐츠를 추천할 이유를 작성하세요.';area.addEventListener('change',()=>updateSaved(x.url,{reason:area.value}));box.append(area);const verify=document.createElement('label');verify.style.display='flex';verify.style.alignItems='center';verify.style.gap='7px';const chk=document.createElement('input');chk.type='checkbox';chk.checked=!!x.verified;chk.addEventListener('change',()=>{updateSaved(x.url,{verified:chk.checked});render()});verify.append(chk,document.createTextNode('원본 링크·내용 직접 확인함'));box.append(verify);}
+function card(x,isSavedView){const card=document.createElement('article');card.className='result';if(x.thumbnail){const img=document.createElement('img');img.className='thumb';img.src=x.thumbnail;img.alt=(x.originalTitle||x.title)+' 관련 자료 이미지';img.loading='lazy';img.referrerPolicy='no-referrer';img.addEventListener('error',()=>{img.replaceWith(themeThumb(x))});card.append(img)}else card.append(themeThumb(x));const body=document.createElement('div');body.className='rbody';const tags=addText(body,'div','','tags');for(const cat of (x.tags||[]).slice(0,2)){addText(tags,'span',cat,'tag '+({공부:'study',기술:'tech',문화:'culture',취미:'hobby'}[cat]||''))}addText(tags,'span',srcName(x.form),'tag form');if((x.tags||[]).length>1)addText(tags,'span','✦ 복합 분야','tag mix');if(x.source==='한국어 위키백과')addText(body,'div',x.titleStatus==='본문 발췌 기반 · 승민 검토 필요'?'✦ 학생 관심 구간 발췌 · 검토 필요':x.titleStatus==='원문 발췌 기반 · 검토 필요'?'✦ 원문 기반 제목 · 검토 필요':'✦ 주제별 제목 제안 · 원문 검토 필요','pitch');addText(body,'h3',x.title);if(x.originalTitle&&x.originalTitle!==x.title)addText(body,'div','원본 제목: '+x.originalTitle,'meta originalname');addText(body,'p',x.description||'원본에서 자세한 내용을 확인해 주세요.','desc');if(x.evidence)addText(body,'div','분야 연결 근거: '+x.evidence,'meta evidence');if(!isSavedView&&x.preferenceReason&&$('personalize').checked)addText(body,'div','✦ 취향 반영: '+x.preferenceReason,'personalized-hint');addText(body,'div',x.source+(x.date?' · '+x.date.slice(0,10):''),'meta');if(isSavedView){const box=addText(body,'div','','edited');addText(box,'label','추천 카드 제목 (직접 수정 가능)');const titleField=document.createElement('input');titleField.className='input';titleField.type='text';titleField.maxLength=100;titleField.value=x.title;titleField.setAttribute('aria-label','추천 카드 제목 수정');titleField.addEventListener('change',()=>{const edited=titleField.value.trim();if(!edited){titleField.value=x.title;return}updateSaved(x.url,{title:edited,titleStatus:'수동 수정'});render()});box.append(titleField);addText(box,'label','분야 수정 (최대 2개)');const select=document.createElement('select');for(const c of CAT){const op=document.createElement('option');op.value=c;op.textContent=c;select.append(op)}select.value=x.tags?.[0]||x.category;select.addEventListener('change',()=>{updateSaved(x.url,{tags:[select.value,...(x.tags||[]).filter(t=>t!==select.value)].slice(0,2)});render()});box.append(select);const second=document.createElement('select');for(const c of ['없음',...CAT]){const op=document.createElement('option');op.value=c;op.textContent=c==='없음'?'두 번째 분야 없음':c;second.append(op)}second.value=x.tags?.[1]||'없음';second.addEventListener('change',()=>{const first=select.value;const val=second.value;updateSaved(x.url,{tags:val==='없음'||val===first?[first]:[first,val]});render()});addText(box,'label','두 번째 분야');box.append(second);addText(box,'label','추천 이유 / 검토 메모');const area=document.createElement('textarea');area.className='input';area.value=x.reason||'';area.placeholder='이 콘텐츠를 추천할 이유를 작성하세요.';area.addEventListener('change',()=>updateSaved(x.url,{reason:area.value}));box.append(area);const verify=document.createElement('label');verify.style.display='flex';verify.style.alignItems='center';verify.style.gap='7px';const chk=document.createElement('input');chk.type='checkbox';chk.checked=!!x.verified;chk.addEventListener('change',()=>{updateSaved(x.url,{verified:chk.checked});render()});verify.append(chk,document.createTextNode('원본 링크·내용 직접 확인함'));box.append(verify);}
 const acts=addText(body,'div','','actions');const link=document.createElement('a');link.href=x.url;link.target='_blank';link.rel='noopener noreferrer';link.className='secondary';link.textContent='↗ 원본 열기';acts.append(link);if(isSavedView)acts.append(actionButton('보관함에서 삭제','ghost',()=>{if(confirm('이 후보를 보관함에서 삭제할까요?')){saved=saved.filter(y=>y.url!==x.url);persist();render()}}));else acts.append(actionButton(isSaved(x)?'✓ 저장됨':'+ 후보 저장','primary',()=>{if(!isSaved(x)){const {fullText,...candidate}=x;saved.unshift(candidate);persist()}render()}));card.append(body);return card}
 function fallback(form){const d=addText(document.createElement('div'),'div',form==='영상'?'▶ VIDEO':'▧ ARTICLE','thumb thumbfallback');return d}function updateSaved(url,patch){saved=saved.map(y=>y.url===url?{...y,...patch}:y);persist()}
 function render(){const active=tab==='saved';$('tabResults').classList.toggle('on',!active);$('tabSaved').classList.toggle('on',active);$('savedCount').textContent=saved.length;const arr=uniqueVisualCards(active?saved:results);const grid=$('results');grid.replaceChildren();if(active){hideSearchProgress();setStatus(saved.length?`${saved.length}개 후보를 보관하고 있습니다. 저장 내용은 현재 브라우저에만 남아요.`:'아직 저장한 후보가 없습니다. 검색 결과에서 후보 저장을 눌러주세요.')}else if(!busy){const multi=results.filter(x=>(x.tags||[]).length>1).length;setStatus(results.length?`${results.length}개 한국어 콘텐츠를 찾았습니다.${lastSearchCats.length>1?' 복합 분야 '+multi+'개 · 복합 분야 카드를 우선 표시합니다.':''} 원문 근거를 확인한 후 저장하세요.`:'자동 검색 결과가 없습니다. 아래 웹 검색 링크를 이용해 주세요.')}if(!arr.length){grid.append(addText(document.createElement('div'),'div',active?'보관함이 비어 있어요.':'표시할 검색 결과가 없어요.','empty'));grid.lastElementChild.style.gridColumn='1/-1';return}for(const x of arr)grid.append(card(x,active))}
