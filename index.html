@@ -86,7 +86,7 @@ button:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px soli
 <button id="search" class="primary full">✨ 후보 콘텐츠 찾기</button><div class="notice">이 웹사이트는 검색 서버를 통해 관련 콘텐츠를 찾습니다. 후보는 현재 사용 중인 브라우저에만 저장되므로, 다른 기기로 옮길 때는 CSV 내보내기·불러오기를 사용하세요.</div>
 <details class="config"><summary>⚙ 유튜브 API 키 입력 (로컬 테스트 전용)</summary><p>공개 웹사이트에서는 개인 API 키를 입력하지 마세요. 현재 유튜브 검색은 키 없이 Wikimedia Commons 영상만 자동 검색합니다. 유튜브 연동은 추후 서버에서 키를 관리하는 방식으로 추가할 수 있어요.</p><input type="password" id="youtubeKey" class="input" placeholder="공개 배포용 버전: 입력 비활성화" autocomplete="off" disabled><p><a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener noreferrer">Google Cloud에서 API 확인</a></p></details>
 </aside><main><div class="topbar"><div class="tabs"><button id="tabResults" class="tab on">검색 결과</button><button id="tabSaved" class="tab">후보 보관함 <span id="savedCount">0</span></button></div><div class="savehead"><button id="export" class="secondary">⬇ CSV 내보내기</button><button id="importBtn" class="ghost">⬆ CSV 불러오기</button><input id="importFile" type="file" accept=".csv,text/csv" hidden></div></div>
-<div id="status" class="status">왼쪽에서 분야와 콘텐츠 형태를 선택하고 <strong>후보 콘텐츠 찾기</strong>를 눌러주세요.</div><div id="results" class="results" style="margin-top:15px"></div><div class="foot">※ 분야 적합성을 제목·설명에서 다시 확인하며, 정치 지도자 등 부적합한 문서를 자동 후보에서 제외합니다. 제목과 본문은 원문 발췌에 근거하며, 충분한 설명이 없는 문서는 검색 결과에서 제외합니다. 실제 원문을 읽고 검토한 후 승민이가 수정할 수 있습니다. ※ 한국어 제목·설명을 기준으로 검색 결과를 걸러냅니다. 영상의 실제 음성·자막 언어는 자동 보장되지 않아 원본 확인이 필요합니다. 분야 태그는 검색 분야와 제목·설명 키워드로 제안한 값이며 최대 2개입니다. 자동 분류 결과를 승민이가 검토해야 합니다. 링크 접속 및 원문 내용의 일치 여부는 별도로 확인해야 합니다. 검색 결과를 저장해도 개발 반영이 완료되는 것은 아닙니다.</div></main></div></div>
+<div id="status" class="status">왼쪽에서 분야와 콘텐츠 형태를 선택하고 <strong>후보 콘텐츠 찾기</strong>를 눌러주세요.</div><div id="results" class="results" style="margin-top:15px"></div><div class="foot">※ 기사 주제와 관련성이 확인된 이미지만 사용하며, 이미지가 없거나 다른 카드와 중복되면 기사별 주제 그래픽으로 대체합니다. 제목은 한국어 중심의 짧은 편집안으로 제안합니다. 원문과의 일치 여부는 승민이가 최종 확인해야 합니다. ※ 분야 적합성을 제목·설명에서 다시 확인하며, 정치 지도자 등 부적합한 문서를 자동 후보에서 제외합니다. 제목과 본문은 원문 발췌에 근거하며, 충분한 설명이 없는 문서는 검색 결과에서 제외합니다. 실제 원문을 읽고 검토한 후 승민이가 수정할 수 있습니다. ※ 한국어 제목·설명을 기준으로 검색 결과를 걸러냅니다. 영상의 실제 음성·자막 언어는 자동 보장되지 않아 원본 확인이 필요합니다. 분야 태그는 검색 분야와 제목·설명 키워드로 제안한 값이며 최대 2개입니다. 자동 분류 결과를 승민이가 검토해야 합니다. 링크 접속 및 원문 내용의 일치 여부는 별도로 확인해야 합니다. 검색 결과를 저장해도 개발 반영이 완료되는 것은 아닙니다.</div></main></div></div>
 <script>
 'use strict';
 const $=id=>document.getElementById(id);const CAT=['공부','기술','문화','취미'];const seeds={'공부':'학습','기술':'인공지능','문화':'예술','취미':'요리'};const patterns={'공부':/공부|학습|교육|학교|학생|시험|study|learning|education/i,'기술':/인공지능|AI\b|기술|과학|컴퓨터|프로그램|로봇|software|technology|science/i,'문화':/문화|영화|예술|음악|미술|역사|연극|art|culture|film|music/i,'취미':/취미|여행|요리|운동|사진|게임|독서|만들기|hobby|travel|cooking|sport/i};
@@ -217,22 +217,14 @@ function suggestCardTitle(originalTitle,description,category){
 }
 function uniqueHeadlines(cards){
   const used=new Set();
-  return cards.map(item=>{
-    const headline=tidy(item.title);
-    const key=headline.replace(/[\s"'‘’“”.,!?]/g,'').toLowerCase();
-    if(used.has(key)){
-      // 동일 제목이 생기면 내용을 꾸며내지 않고 원본 제목을 사용합니다.
-      item.title=item.originalTitle||item.title;
-      item.titleStatus='편집 필요';
-    }
-    let finalKey=tidy(item.title).replace(/[\s"'‘’“”.,!?]/g,'').toLowerCase();
-    if(used.has(finalKey)){
-      // 동일 원본 제목이 여러 자료에서 반복될 경우 검색 화면에서 중복을 제거합니다.
-      return null;
-    }
-    used.add(finalKey);
-    return item;
-  }).filter(Boolean);
+  const keyOf=x=>tidy(x).replace(/[\s"'‘’“”.,!?]/g,'').toLowerCase();
+  return cards.filter(item=>{
+    const key=keyOf(item.title);
+    // 자동 생성된 제목이 겹친다면 한 단어짜리 원제로 되돌리지 않고 중복 후보를 제외합니다.
+    if(!key||used.has(key))return false;
+    used.add(key);
+    return true;
+  });
 }
 
 // 규칙을 초기화한 다음 기존 후보를 불러와서 직접 수정한 제목을 안전하게 보존합니다.
