@@ -86,11 +86,11 @@ button:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px soli
 <button id="search" class="primary full">✨ 후보 콘텐츠 찾기</button><div class="notice">이 웹사이트는 검색 서버를 통해 관련 콘텐츠를 찾습니다. 후보는 현재 사용 중인 브라우저에만 저장되므로, 다른 기기로 옮길 때는 CSV 내보내기·불러오기를 사용하세요.</div>
 <details class="config"><summary>⚙ 유튜브 API 키 입력 (로컬 테스트 전용)</summary><p>공개 웹사이트에서는 개인 API 키를 입력하지 마세요. 현재 유튜브 검색은 키 없이 Wikimedia Commons 영상만 자동 검색합니다. 유튜브 연동은 추후 서버에서 키를 관리하는 방식으로 추가할 수 있어요.</p><input type="password" id="youtubeKey" class="input" placeholder="공개 배포용 버전: 입력 비활성화" autocomplete="off" disabled><p><a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener noreferrer">Google Cloud에서 API 확인</a></p></details>
 </aside><main><div class="topbar"><div class="tabs"><button id="tabResults" class="tab on">검색 결과</button><button id="tabSaved" class="tab">후보 보관함 <span id="savedCount">0</span></button></div><div class="savehead"><button id="export" class="secondary">⬇ CSV 내보내기</button><button id="importBtn" class="ghost">⬆ CSV 불러오기</button><input id="importFile" type="file" accept=".csv,text/csv" hidden></div></div>
-<div id="status" class="status">왼쪽에서 분야와 콘텐츠 형태를 선택하고 <strong>후보 콘텐츠 찾기</strong>를 눌러주세요.</div><div id="results" class="results" style="margin-top:15px"></div><div class="foot">※ 기사 주제와 관련성이 확인된 이미지만 사용하며, 이미지가 없거나 다른 카드와 중복되면 기사별 주제 그래픽으로 대체합니다. 제목은 한국어 중심의 짧은 편집안으로 제안합니다. 여러 문장 중 선택된 원문 발췌 구간에 근거하여 분야를 최대 2개 지정하고 학생 관심도를 우선합니다. 자동 발췌·분류 결과는 최종 검토가 필요합니다. 원문과의 일치 여부는 승민이가 최종 확인해야 합니다. ※ 분야 적합성을 제목·설명에서 다시 확인하며, 정치 지도자 등 부적합한 문서를 자동 후보에서 제외합니다. 제목과 본문은 원문 발췌에 근거하며, 충분한 설명이 없는 문서는 검색 결과에서 제외합니다. 실제 원문을 읽고 검토한 후 승민이가 수정할 수 있습니다. ※ 한국어 제목·설명을 기준으로 검색 결과를 걸러냅니다. 영상의 실제 음성·자막 언어는 자동 보장되지 않아 원본 확인이 필요합니다. 분야 태그는 검색 분야와 제목·설명 키워드로 제안한 값이며 최대 2개입니다. 자동 분류 결과를 승민이가 검토해야 합니다. 링크 접속 및 원문 내용의 일치 여부는 별도로 확인해야 합니다. 검색 결과를 저장해도 개발 반영이 완료되는 것은 아닙니다.</div></main></div></div>
+<div id="status" class="status">왼쪽에서 분야와 콘텐츠 형태를 선택하고 <strong>후보 콘텐츠 찾기</strong>를 눌러주세요.</div><div id="results" class="results" style="margin-top:15px"></div><div id="moreWrap" style="margin-top:16px;display:none;text-align:center"><button id="more" class="secondary" type="button">＋ 다음 기사 더 찾기</button></div><div class="foot">※ 기사 주제와 관련성이 확인된 이미지만 사용하며, 이미지가 없거나 다른 카드와 중복되면 기사별 주제 그래픽으로 대체합니다. 제목은 한국어 중심의 짧은 편집안으로 제안합니다. 여러 문장 중 선택된 원문 발췌 구간에 근거하여 분야를 최대 2개 지정하고 학생 관심도를 우선합니다. 자동 발췌·분류 결과는 최종 검토가 필요합니다. 원문과의 일치 여부는 승민이가 최종 확인해야 합니다. ※ 분야 적합성을 제목·설명에서 다시 확인하며, 정치 지도자 등 부적합한 문서를 자동 후보에서 제외합니다. 제목과 본문은 원문 발췌에 근거하며, 충분한 설명이 없는 문서는 검색 결과에서 제외합니다. 실제 원문을 읽고 검토한 후 승민이가 수정할 수 있습니다. ※ 한국어 제목·설명을 기준으로 검색 결과를 걸러냅니다. 영상의 실제 음성·자막 언어는 자동 보장되지 않아 원본 확인이 필요합니다. 분야 태그는 검색 분야와 제목·설명 키워드로 제안한 값이며 최대 2개입니다. 자동 분류 결과를 승민이가 검토해야 합니다. 링크 접속 및 원문 내용의 일치 여부는 별도로 확인해야 합니다. 검색 결과를 저장해도 개발 반영이 완료되는 것은 아닙니다.</div></main></div></div>
 <script>
 'use strict';
 const $=id=>document.getElementById(id);const CAT=['공부','기술','문화','취미'];const seeds={'공부':'학습','기술':'인공지능','문화':'예술','취미':'요리'};const patterns={'공부':/공부|학습|교육|학교|학생|시험|study|learning|education/i,'기술':/인공지능|AI\b|기술|과학|컴퓨터|프로그램|로봇|software|technology|science/i,'문화':/문화|영화|예술|음악|미술|역사|연극|art|culture|film|music/i,'취미':/취미|여행|요리|운동|사진|게임|독서|만들기|hobby|travel|cooking|sport/i};
-const STORE='mygorithm-research-v1';let saved=[],results=[],tab='results',busy=false,lastSearchCats=[];function readSaved(){try{const v=JSON.parse(localStorage.getItem(STORE)||'[]');return Array.isArray(v)?v.map(x=>{
+const STORE='mygorithm-research-v1';let saved=[],results=[],tab='results',busy=false,lastSearchCats=[],articleSearchState=null;function readSaved(){try{const v=JSON.parse(localStorage.getItem(STORE)||'[]');return Array.isArray(v)?v.map(x=>{
   if(!x||x.source!=='한국어 위키백과')return x;
   const sourceTitle=x.originalTitle||x.title;
   // 승민이가 직접 편집한 제목은 보존하고, 자동 생성 제목만 교체합니다.
@@ -484,7 +484,7 @@ async function wikiJSON(url){
 }
 function externalFinder(cats,forms,term){const wrapper=document.createElement('section');wrapper.className='searchfallback';addText(wrapper,'h3','🌐 검색 사이트에서 바로 찾기');addText(wrapper,'p','더 많은 콘텐츠를 찾고 싶다면 아래에서 외부 검색을 열 수 있어요. 검색어와 분야가 자동으로 반영되지만, 외부 검색 결과는 후보 보관함에 자동 저장되지 않아요.','desc');const links=addText(wrapper,'div','','searchlinks');for(const cat of cats){const words=(term?cat+' '+term:({공부:'학습 공부법 교육',기술:'인공지능 기술 과학',문화:'영화 예술 문화',취미:'취미 여행 요리'}[cat]))+' 한국어';if(forms.includes('기사')){for(const [label,url] of [[cat+' · 뉴스','https://www.google.com/search?tbm=nws&q='+encodeURIComponent(words)],[cat+' · 글','https://www.google.com/search?q='+encodeURIComponent(words)]]){const a=addText(links,'a',label);a.href=url;a.target='_blank';a.rel='noopener noreferrer'}}if(forms.includes('영상')){const a=addText(links,'a',cat+' · 유튜브');a.href='https://www.youtube.com/results?search_query='+encodeURIComponent(words);a.target='_blank';a.rel='noopener noreferrer'}}return wrapper}
 
-async function wiki(category,term,max){
+async function wiki(category,term,max,offset=0){
  // 큰 요청 한 번 대신 제목 검색 -> 소량의 도입문 묶음 -> 소수 문서의 상세 발췌 순으로 작업합니다.
  // exlimit는 exintro와 함께 사용해야 여러 문서의 발췌를 가져올 수 있습니다.
  const query=term?term+' '+category:seeds[category];
@@ -494,10 +494,13 @@ async function wiki(category,term,max){
    gsrlimit:String(count),gsrnamespace:'0',prop:'pageimages|info',
    inprop:'url',piprop:'thumbnail',pithumbsize:'440',redirects:'1'
  });
+ if(offset>0)params.set('gsroffset',String(offset));
  const discovery=await wikiJSON('https://ko.wikipedia.org/w/api.php?'+params);
+ const offsetValue=discovery.continue?.gsroffset;
+ const nextOffset=Number.isSafeInteger(Number(offsetValue))&&offsetValue!=null&&Number(offsetValue)>offset?Number(offsetValue):null;
  const pages=Object.values(discovery.query?.pages||{}).sort((x,y)=>(x.index??99)-(y.index??99))
    .filter(p=>p.pageid&&looksKorean(p.title)&&!SENSITIVE_TOPICS.test(p.title)&&!GENERAL_ENTITY_TITLES.test(p.title));
- if(!pages.length)return [];
+ if(!pages.length){const empty=[];empty.nextOffset=nextOffset;return empty;}
  const extracts=new Map();
  const failures=[];
  // 도입문을 10개 단위로 묶으면 응답이 작아지고 API 문서 제한도 준수할 수 있습니다.
@@ -517,7 +520,7 @@ async function wiki(category,term,max){
  // 첫 검색에서 아무 설명도 못 가져온 경우에만 검색 오류로 처리.
  if(![...extracts.values()].some(hasUsefulSummary)){
    if(failures.length)throw Error('위키백과 검색 일부 실패: '+failures[0]);
-   return [];
+   const empty=[];empty.nextOffset=nextOffset;return empty;
  }
  // 본문에서 흥미로운 문장을 고르기 위해 관련성이 있는 최대 3개 문서만 추가 조회.
  const shortlist=pages.filter(p=>hasUsefulSummary(extracts.get(p.pageid))).map(p=>{
@@ -539,7 +542,7 @@ async function wiki(category,term,max){
      if(hasUsefulSummary(detail))extracts.set(page.pageid,detail);
    }catch(e){/* 도입문은 이미 확보했으므로 부분 결과를 유지 */ }
  }
- return pages.map(p=>{
+ const found=pages.map(p=>{
    const description=extracts.get(p.pageid)||'';
    if(!hasUsefulSummary(description))return null;
    return mkResult({
@@ -549,6 +552,8 @@ async function wiki(category,term,max){
      source:'한국어 위키백과',form:'기사',category
    });
  }).filter(Boolean).slice(0,Math.max(max*2,15));
+ found.nextOffset=nextOffset;
+ return found;
 }
 async function commons(category,term,max){const q=term?`${term} ${category}`:category;const p=new URLSearchParams({action:'query',format:'json',origin:'*',generator:'search',gsrsearch:q,gsrnamespace:'6',gsrlimit:String(Math.min(max*2,24)),prop:'imageinfo',iiprop:'url|mime|extmetadata',iiurlwidth:'480'});const d=await wikiJSON('https://commons.wikimedia.org/w/api.php?'+p);if(d.error)throw Error(d.error.info||'API 오류');return Object.values(d.query?.pages||{}).filter(x=>{const i=x.imageinfo?.[0];return i&&(/^video\//.test(i.mime||'')||/\.(webm|ogv|ogg)$/i.test(x.title))&&looksKorean(x.title.replace(/^File:/,''))&&looksKorean(tidy(i.extmetadata?.ImageDescription?.value||''))}).slice(0,max).map(x=>{const i=x.imageinfo[0];return mkResult({id:'commons:'+x.pageid,title:x.title.replace(/^File:/,'').replace(/\.[^.]+$/,'').replaceAll('_',' '),url:i.descriptionurl||'https://commons.wikimedia.org/wiki/'+encodeURIComponent(x.title.replace(/ /g,'_')),thumbnail:i.thumburl||'',description:tidy(i.extmetadata?.ImageDescription?.value)||'Wikimedia Commons에 공개된 영상입니다. 원본을 확인하세요.',source:'Wikimedia Commons',form:'영상',category})});}
 async function youtube(category,term,max,key){const q=term?`${category} ${term}`:seeds[category];const p=new URLSearchParams({part:'snippet',q,type:'video',maxResults:String(Math.min(max,50)),regionCode:'KR',relevanceLanguage:'ko',key});const r=await fetch('/api/proxy?url='+encodeURIComponent('https://www.googleapis.com/youtube/v3/search?'+p),{signal:AbortSignal.timeout(18000)});const d=await r.json();if(!r.ok)throw Error(d.error?.message||`YouTube HTTP ${r.status}`);return (d.items||[]).filter(x=>x.id?.videoId).map(x=>mkResult({id:'yt:'+x.id.videoId,title:x.snippet?.title,url:'https://www.youtube.com/watch?v='+x.id.videoId,thumbnail:x.snippet?.thumbnails?.medium?.url||x.snippet?.thumbnails?.default?.url,description:x.snippet?.description,source:x.snippet?.channelTitle||'YouTube',form:'영상',category,date:x.snippet?.publishedAt}));}
@@ -640,7 +645,7 @@ async function search(){
  const cats=selected('cats'),forms=selected('forms'),term=$('keyword').value.trim();
  const max=Math.min(15,Math.max(1,Number($('limit').value)||10));
  if(!cats.length||!forms.length){alert('분야와 콘텐츠 형태를 하나 이상 선택해 주세요.');return;}
- busy=true;results=[];lastSearchCats=cats.slice();tab='results';
+ busy=true;results=[];lastSearchCats=cats.slice();articleSearchState={cats:cats.slice(),forms:forms.slice(),term,max,cursors:{}};tab='results';$('moreWrap').style.display='none';
  $('search').disabled=true;
  document.querySelectorAll('.transientSearchMessage').forEach(el=>el.remove());
  const jobs=[];
@@ -678,6 +683,7 @@ async function search(){
        const job=jobs[nextIndex++];
        try{
          const found=await job.run();
+         if(job.kind==='위키백과')articleSearchState.cursors[job.cat]=found.nextOffset??null;
          successful++;
          for(const x of found){
            if(!x?.url)continue;
@@ -711,8 +717,51 @@ async function search(){
    }
    const finder=externalFinder(cats,forms,term);finder.classList.add('transientSearchMessage');$('results').before(finder);
    if(!successful && !results.length)setStatus('검색 서버가 응답하지 않았습니다. /health로 서버 상태를 확인하거나 잠시 뒤 다시 시도해 주세요.');
+   updateLoadMore();
  }
 }
+
+function updateLoadMore(){
+  const hasMore=!!articleSearchState&&articleSearchState.forms.includes('기사')
+    &&Object.values(articleSearchState.cursors).some(v=>Number.isInteger(v)&&v>=0);
+  $('moreWrap').style.display=hasMore?'block':'none';
+  $('more').disabled=busy;
+}
+async function loadMore(){
+  if(busy||!articleSearchState)return;
+  const state=articleSearchState;
+  const nextCats=state.cats.filter(c=>Number.isInteger(state.cursors[c])&&state.cursors[c]>=0);
+  if(!nextCats.length){updateLoadMore();return;}
+  busy=true;$('search').disabled=true;$('more').disabled=true;
+  setStatus('다음 기사 묶음을 검색하고 있어요. 기존 후보는 유지됩니다.');
+  const errors=[];
+  const byUrl=new Map(results.map(x=>[x.url,x]));
+  for(const cat of nextCats){
+    const position=state.cursors[cat];
+    try{
+      const batch=await wiki(cat,state.term,state.max,position);
+      state.cursors[cat]=batch.nextOffset??null;
+      let accepted=0;
+      for(const candidate of batch){
+        if(!candidate.url||byUrl.has(candidate.url)||!isKoreanCandidate(candidate))continue;
+        const curated=curateStudentCard(candidate,state.cats);
+        if(curated){byUrl.set(candidate.url,curated);accepted++;}
+        if(accepted>=state.max)break;
+      }
+    }catch(e){
+      errors.push(cat+': '+(e?.message||'추가 검색 실패'));
+      // 오류가 발생한 쪽은 다음 버튼을 남겨 재시도할 수 있도록 합니다.
+    }
+  }
+  results=uniqueVisualCards(uniqueHeadlines([...byUrl.values()].sort(
+    (a,b)=>selectedTagCount(b,state.cats)-selectedTagCount(a,state.cats)
+  )));
+  busy=false;$('search').disabled=false;render();updateLoadMore();
+  if(errors.length)setStatus('새 기사 일부 검색 실패: '+errors.join(' / ')+'. 기존 후보는 모두 유지했습니다.');
+  else setStatus(results.length+'개 후보를 확인할 수 있습니다. 더 찾으려면 다음 기사 더 찾기를 눌러 주세요.');
+}
+$('more').addEventListener('click',loadMore);
+
 $('search').addEventListener('click',search);$('tabResults').addEventListener('click',()=>{tab='results';render()});$('tabSaved').addEventListener('click',()=>{tab='saved';render()});$('keyword').addEventListener('keydown',e=>{if(e.key==='Enter')search()});
 function csvEscape(v){const s=String(v??'');return '"'+s.replaceAll('"','""')+'"'}function exportCSV(){if(!saved.length){alert('먼저 후보를 저장해 주세요.');return}const cols=['분야1','분야2','형태','제목','원본제목','소개','분야연결근거','추천이유','원본URL','출처','썸네일URL','링크검증','개발반영상태','저장일'];const rows=saved.map(x=>[x.tags?.[0]||'',x.tags?.[1]||'',x.form,x.title,x.originalTitle||x.title,x.description,x.evidence||'',x.reason,x.url,x.source,x.thumbnail,x.verified?'수동 확인':'미확인','미확인',x.created]);const csv='\ufeff'+[cols,...rows].map(row=>row.map(csvEscape).join(',')).join('\r\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='맘고리즘_콘텐츠후보_'+new Date().toISOString().slice(0,10)+'.csv';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}$('export').addEventListener('click',exportCSV);$('importBtn').addEventListener('click',()=>$('importFile').click());function parseCSV(text){const rows=[];let row=[],value='',q=false;for(let i=0;i<text.length;i++){const c=text[i];if(q){if(c==='"'&&text[i+1]==='"'){value+='"';i++}else if(c==='"')q=false;else value+=c}else if(c==='"')q=true;else if(c===','){row.push(value);value=''}else if(c==='\n'){row.push(value.replace(/\r$/,''));rows.push(row);row=[];value=''}else value+=c}if(value||row.length){row.push(value);rows.push(row)}return rows}
 $('importFile').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const rows=parseCSV((await file.text()).replace(/^\ufeff/,''));const headers=rows.shift()||[];let n=0;for(const row of rows){const o=Object.fromEntries(headers.map((h,i)=>[h,row[i]||'']));if(!safeURL(o['원본URL'])||saved.some(x=>x.url===o['원본URL']))continue;const tags=[o['분야1'],o['분야2']].filter(x=>CAT.includes(x)).slice(0,2);const original=o['원본제목']||o['제목'];saved.push({...mkResult({title:original,url:o['원본URL'],thumbnail:o['썸네일URL'],description:o['소개'],source:o['출처'],form:o['형태']==='영상'?'영상':'기사',category:tags[0]||'공부'}),title:o['제목'],originalTitle:original,titleStatus:'CSV 가져옴',tags,evidence:o['분야연결근거']||'',reason:o['추천이유']||'',verified:o['링크검증']==='수동 확인'});n++}persist();tab='saved';render();alert(n+'개 후보를 불러왔습니다.')}catch(err){alert('CSV 읽기에 실패했습니다: '+err.message)}e.target.value='' });render();
