@@ -484,7 +484,7 @@ async function wikiJSON(url){
 }
 function externalFinder(cats,forms,term){const wrapper=document.createElement('section');wrapper.className='searchfallback';addText(wrapper,'h3','🌐 검색 사이트에서 바로 찾기');addText(wrapper,'p','더 많은 콘텐츠를 찾고 싶다면 아래에서 외부 검색을 열 수 있어요. 검색어와 분야가 자동으로 반영되지만, 외부 검색 결과는 후보 보관함에 자동 저장되지 않아요.','desc');const links=addText(wrapper,'div','','searchlinks');for(const cat of cats){const words=(term?cat+' '+term:({공부:'학습 공부법 교육',기술:'인공지능 기술 과학',문화:'영화 예술 문화',취미:'취미 여행 요리'}[cat]))+' 한국어';if(forms.includes('기사')){for(const [label,url] of [[cat+' · 뉴스','https://www.google.com/search?tbm=nws&q='+encodeURIComponent(words)],[cat+' · 글','https://www.google.com/search?q='+encodeURIComponent(words)]]){const a=addText(links,'a',label);a.href=url;a.target='_blank';a.rel='noopener noreferrer'}}if(forms.includes('영상')){const a=addText(links,'a',cat+' · 유튜브');a.href='https://www.youtube.com/results?search_query='+encodeURIComponent(words);a.target='_blank';a.rel='noopener noreferrer'}}return wrapper}
 
-async function wiki(category,term,max,offset=0){
+async function wiki(category,term,max,cursor=null){
  // 큰 요청 한 번 대신 제목 검색 -> 소량의 도입문 묶음 -> 소수 문서의 상세 발췌 순으로 작업합니다.
  // exlimit는 exintro와 함께 사용해야 여러 문서의 발췌를 가져올 수 있습니다.
  const query=term?term+' '+category:seeds[category];
@@ -494,13 +494,12 @@ async function wiki(category,term,max,offset=0){
    gsrlimit:String(count),gsrnamespace:'0',prop:'pageimages|info',
    inprop:'url',piprop:'thumbnail',pithumbsize:'440',redirects:'1'
  });
- if(offset>0)params.set('gsroffset',String(offset));
+ if(cursor){for(const [key,value] of Object.entries(cursor))params.set(key,String(value));}
  const discovery=await wikiJSON('https://ko.wikipedia.org/w/api.php?'+params);
- const offsetValue=discovery.continue?.gsroffset;
- const nextOffset=Number.isSafeInteger(Number(offsetValue))&&offsetValue!=null&&Number(offsetValue)>offset?Number(offsetValue):null;
+ const nextCursor=discovery.continue||null;
  const pages=Object.values(discovery.query?.pages||{}).sort((x,y)=>(x.index??99)-(y.index??99))
    .filter(p=>p.pageid&&looksKorean(p.title)&&!SENSITIVE_TOPICS.test(p.title)&&!GENERAL_ENTITY_TITLES.test(p.title));
- if(!pages.length){const empty=[];empty.nextOffset=nextOffset;return empty;}
+ if(!pages.length){const empty=[];empty.nextCursor=nextCursor;return empty;}
  const extracts=new Map();
  const failures=[];
  // 도입문을 10개 단위로 묶으면 응답이 작아지고 API 문서 제한도 준수할 수 있습니다.
@@ -520,7 +519,7 @@ async function wiki(category,term,max,offset=0){
  // 첫 검색에서 아무 설명도 못 가져온 경우에만 검색 오류로 처리.
  if(![...extracts.values()].some(hasUsefulSummary)){
    if(failures.length)throw Error('위키백과 검색 일부 실패: '+failures[0]);
-   const empty=[];empty.nextOffset=nextOffset;return empty;
+   const empty=[];empty.nextCursor=nextCursor;return empty;
  }
  // 본문에서 흥미로운 문장을 고르기 위해 관련성이 있는 최대 3개 문서만 추가 조회.
  const shortlist=pages.filter(p=>hasUsefulSummary(extracts.get(p.pageid))).map(p=>{
@@ -552,7 +551,7 @@ async function wiki(category,term,max,offset=0){
      source:'한국어 위키백과',form:'기사',category
    });
  }).filter(Boolean).slice(0,Math.max(max*2,15));
- found.nextOffset=nextOffset;
+ found.nextCursor=nextCursor;
  return found;
 }
 async function commons(category,term,max){const q=term?`${term} ${category}`:category;const p=new URLSearchParams({action:'query',format:'json',origin:'*',generator:'search',gsrsearch:q,gsrnamespace:'6',gsrlimit:String(Math.min(max*2,24)),prop:'imageinfo',iiprop:'url|mime|extmetadata',iiurlwidth:'480'});const d=await wikiJSON('https://commons.wikimedia.org/w/api.php?'+p);if(d.error)throw Error(d.error.info||'API 오류');return Object.values(d.query?.pages||{}).filter(x=>{const i=x.imageinfo?.[0];return i&&(/^video\//.test(i.mime||'')||/\.(webm|ogv|ogg)$/i.test(x.title))&&looksKorean(x.title.replace(/^File:/,''))&&looksKorean(tidy(i.extmetadata?.ImageDescription?.value||''))}).slice(0,max).map(x=>{const i=x.imageinfo[0];return mkResult({id:'commons:'+x.pageid,title:x.title.replace(/^File:/,'').replace(/\.[^.]+$/,'').replaceAll('_',' '),url:i.descriptionurl||'https://commons.wikimedia.org/wiki/'+encodeURIComponent(x.title.replace(/ /g,'_')),thumbnail:i.thumburl||'',description:tidy(i.extmetadata?.ImageDescription?.value)||'Wikimedia Commons에 공개된 영상입니다. 원본을 확인하세요.',source:'Wikimedia Commons',form:'영상',category})});}
@@ -683,7 +682,7 @@ async function search(){
        const job=jobs[nextIndex++];
        try{
          const found=await job.run();
-         if(job.kind==='위키백과')articleSearchState.cursors[job.cat]=found.nextOffset??null;
+         if(job.kind==='위키백과')articleSearchState.cursors[job.cat]=found.nextCursor??null;
          successful++;
          for(const x of found){
            if(!x?.url)continue;
@@ -723,14 +722,14 @@ async function search(){
 
 function updateLoadMore(){
   const hasMore=!!articleSearchState&&articleSearchState.forms.includes('기사')
-    &&Object.values(articleSearchState.cursors).some(v=>Number.isInteger(v)&&v>=0);
+    &&Object.values(articleSearchState.cursors).some(v=>v&&typeof v==='object');
   $('moreWrap').style.display=hasMore?'block':'none';
   $('more').disabled=busy;
 }
 async function loadMore(){
   if(busy||!articleSearchState)return;
   const state=articleSearchState;
-  const nextCats=state.cats.filter(c=>Number.isInteger(state.cursors[c])&&state.cursors[c]>=0);
+  const nextCats=state.cats.filter(c=>state.cursors[c]&&typeof state.cursors[c]==='object');
   if(!nextCats.length){updateLoadMore();return;}
   busy=true;$('search').disabled=true;$('more').disabled=true;
   setStatus('다음 기사 묶음을 검색하고 있어요. 기존 후보는 유지됩니다.');
@@ -740,7 +739,7 @@ async function loadMore(){
     const position=state.cursors[cat];
     try{
       const batch=await wiki(cat,state.term,state.max,position);
-      state.cursors[cat]=batch.nextOffset??null;
+      state.cursors[cat]=batch.nextCursor??null;
       let accepted=0;
       for(const candidate of batch){
         if(!candidate.url||byUrl.has(candidate.url)||!isKoreanCandidate(candidate))continue;
