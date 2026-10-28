@@ -935,7 +935,7 @@ async function search(){
  const max=Math.min(15,Math.max(1,Number($('limit').value)||10));
  if(!cats.length||!forms.length){alert('분야와 콘텐츠 형태를 하나 이상 선택해 주세요.');return;}
  busy=true;results=[];lastSearchCats=cats.slice();articleSearchState={cats:cats.slice(),forms:forms.slice(),term,max,articleJobs:[],videoJobs:[],rawCandidates:new Map(),seenUrls:new Set(),seenTopics:new Set(),rotationIndex:0};tab='results';$('moreWrap').style.display='none';
- $('search').disabled=true;
+ $('search').disabled=true;updateRerollButton();
  document.querySelectorAll('.transientSearchMessage').forEach(el=>el.remove());
  const jobs=[];
  // 복합 분야를 검색할 때만 연관 주제를 직접 찾아봅니다. 태그는 발췌문을 검사한 후 결정됩니다.
@@ -1016,7 +1016,7 @@ async function search(){
    };
    await Promise.all(Array.from({length:Math.min(2,jobs.length)},()=>worker()));
  }finally{
-   busy=false;$('search').disabled=false;refresh();
+   busy=false;$('search').disabled=false;refresh();updateRerollButton();
    updateSearchProgress({phase:errors.length===jobs.length?'failed':'done',done:finished,total:jobs.length,found:results.length,errors:errors.length});
    if(errors.length){
      const warn=document.createElement('div');
@@ -1173,7 +1173,10 @@ async function loadMore(){
       job.cursor=batch.nextCursor??null;
       let accepted=0;
       for(const candidate of batch){
-        if(!candidate.url||byUrl.has(candidate.url)||!isKoreanCandidate(candidate))continue;
+        if(!candidate.url||byUrl.has(candidate.url)||!isKoreanCandidate(candidate)||
+           state.seenUrls.has(canonicalCardKey(candidate))||
+           state.seenTopics.has(topicCardKey(candidate)))continue;
+        state.rawCandidates.set(candidate.url,candidate);
         const curated=curateStudentCard(candidate,state.cats);
         if(curated){byUrl.set(candidate.url,curated);accepted++;}
         if(accepted>=job.max)break;
@@ -1186,9 +1189,7 @@ async function loadMore(){
       updateSearchProgress({phase:'searching',done:moreDone,total:nextJobs.length,found:byUrl.size,errors:errors.length,more:true});
     }
   }
-  results=uniqueVisualCards(uniqueHeadlines([...byUrl.values()].sort(
-    (a,b)=>selectedTagCount(b,state.cats)-selectedTagCount(a,state.cats)
-  )));
+  results=uniqueVisualCards(uniqueHeadlines(rankForUser([...byUrl.values()],state.cats)));
   busy=false;$('search').disabled=false;render();updateLoadMore();
   updateSearchProgress({phase:errors.length===nextJobs.length?'failed':'done',done:moreDone,total:nextJobs.length,found:results.length,errors:errors.length,more:true});
   if(errors.length)setStatus('새 기사 일부 검색 실패: '+errors.join(' / ')+'. 기존 후보는 모두 유지했습니다.');
