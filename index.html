@@ -362,7 +362,7 @@ function passageSentences(source){
    const fragments=p.match(/[^.!?。]+(?:[.!?。]+(?=\s|$)|$)/g)||[p];
    for(const segment of fragments){
      const t=tidy(segment).replace(/^[•·–\-]\s*/,'');
-     if(t.length>=45 && t.length<=500 && looksKorean(t))sentences.push(t);
+     if(t.length>=23 && t.length<=500 && looksKorean(t))sentences.push(t);
    }
  }
  if(!sentences.length&&clean.length>=85)sentences.push(tidy(clean).slice(0,350));
@@ -371,9 +371,9 @@ function passageSentences(source){
 function excerptCandidates(fullText,categories){
  const sentences=passageSentences(fullText),pool=[];
  for(let i=0;i<sentences.length;i++){
-  for(let size=1;size<=2&&i+size<=sentences.length;size++){
+  for(let size=1;size<=3&&i+size<=sentences.length;size++){
     const joined=sentences.slice(i,i+size).join(' ').trim();
-    if(joined.length<95 || joined.length>410)continue;
+    if(joined.length<85 || joined.length>410)continue;
     const signals=categories.map(cat=>({cat,hits:passageKeywords(joined,cat)}));
     const matched=signals.filter(x=>x.hits.length);
     if(!matched.length)continue;
