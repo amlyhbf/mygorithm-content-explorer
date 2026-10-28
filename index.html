@@ -95,8 +95,8 @@ const STORE='mygorithm-research-v1';let saved=[],results=[],tab='results',busy=f
   const sourceTitle=x.originalTitle||x.title;
   // 승민이가 직접 편집한 제목은 보존하고, 자동 생성 제목만 교체합니다.
   if(x.titleStatus==='수동 수정'||x.titleStatus==='승민 검토'||x.titleStatus==='CSV 가져옴')return x;
-  const newTitle=suggestCardTitle(sourceTitle,x.description,x.category);
-  return {...x,originalTitle:sourceTitle,title:newTitle,titleStatus:newTitle===sourceTitle?'편집 필요':'자동 편집안'};
+  const newTitle=groundedHeadline(sourceTitle,x.description)||sourceTitle;
+  return {...x,originalTitle:sourceTitle,title:newTitle,titleStatus:newTitle===sourceTitle?'편집 필요':'원문 검토 필요 · 자동 제목'};
 }):[]}catch{return []}}function persist(){try{localStorage.setItem(STORE,JSON.stringify(saved))}catch{alert('브라우저 저장 공간을 사용할 수 없습니다. CSV로 내보내 저장해주세요.')} $('savedCount').textContent=saved.length}
 function selected(id){return Array.from($(id).querySelectorAll('input:checked')).map(x=>x.value)}function makeTags(text,primary,all){const matching=all.filter(cat=>topicMatches(text,cat).length);return [primary,...matching.filter(x=>x!==primary)].filter(x=>all.includes(x)).slice(0,2)}
 
