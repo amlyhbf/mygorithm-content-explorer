@@ -635,19 +635,84 @@ function card(x,isSavedView){const card=document.createElement('article');card.c
 const acts=addText(body,'div','','actions');const link=document.createElement('a');link.href=x.url;link.target='_blank';link.rel='noopener noreferrer';link.className='secondary';link.textContent='↗ 원본 열기';acts.append(link);if(isSavedView)acts.append(actionButton('보관함에서 삭제','ghost',()=>{if(confirm('이 후보를 보관함에서 삭제할까요?')){saved=saved.filter(y=>y.url!==x.url);persist();render()}}));else acts.append(actionButton(isSaved(x)?'✓ 저장됨':'+ 후보 저장','primary',()=>{if(!isSaved(x)){const {fullText,...candidate}=x;saved.unshift(candidate);persist()}render()}));card.append(body);return card}
 function fallback(form){const d=addText(document.createElement('div'),'div',form==='영상'?'▶ VIDEO':'▧ ARTICLE','thumb thumbfallback');return d}function updateSaved(url,patch){saved=saved.map(y=>y.url===url?{...y,...patch}:y);persist()}
 function render(){const active=tab==='saved';$('tabResults').classList.toggle('on',!active);$('tabSaved').classList.toggle('on',active);$('savedCount').textContent=saved.length;const arr=uniqueVisualCards(active?saved:results);const grid=$('results');grid.replaceChildren();if(active){setStatus(saved.length?`${saved.length}개 후보를 보관하고 있습니다. 저장 내용은 현재 브라우저에만 남아요.`:'아직 저장한 후보가 없습니다. 검색 결과에서 후보 저장을 눌러주세요.')}else if(!busy){setStatus(results.length?`${results.length}개 한국어 콘텐츠를 찾았습니다.${lastSearchCats.length>1?' 선택한 분야가 2개 이상 일치하는 카드를 우선 표시합니다.':''} 분류와 원본 내용을 검토한 후 저장하세요.`:'자동 검색 결과가 없습니다. 아래 웹 검색 링크를 이용해 주세요.')}if(!arr.length){grid.append(addText(document.createElement('div'),'div',active?'보관함이 비어 있어요.':'표시할 검색 결과가 없어요.','empty'));grid.lastElementChild.style.gridColumn='1/-1';return}for(const x of arr)grid.append(card(x,active))}
-async function search(){if(busy)return;const cats=selected('cats'),forms=selected('forms'),term=$('keyword').value.trim(),max=Number($('limit').value),key=$('youtubeKey').value.trim();if(!cats.length||!forms.length){alert('분야와 콘텐츠 형태를 하나 이상 선택해 주세요.');return}busy=true;results=[];lastSearchCats=cats.slice();tab='results';$('search').disabled=true;document.querySelectorAll('.transientSearchMessage').forEach(el=>el.remove());const loading=document.createElement('span');loading.className='loading';loading.innerHTML='<span class="spinner"></span>실제 인터넷에서 콘텐츠를 찾는 중...';setStatus(loading);$('results').replaceChildren();const jobs=[];for(const cat of cats){if(forms.includes('기사'))jobs.push({cat,kind:'위키백과',run:()=>wiki(cat,term,max)});if(forms.includes('영상')){jobs.push({cat,kind:'Wikimedia 영상',run:()=>commons(cat,term,max)});if(key)jobs.push({cat,kind:'YouTube',run:()=>youtube(cat,term,max,key)})}}const settled=await Promise.allSettled(jobs.map(j=>j.run()));const errs=[];const uniq=new Map();settled.forEach((r,i)=>{if(r.status==='fulfilled'){for(const x of r.value){if(!x.url)continue;const old=uniq.get(x.url);if(old){if((x.fullText||'').length>(old.fullText||'').length)old.fullText=x.fullText;}else uniq.set(x.url,x)}}else errs.push(`${jobs[i].cat} ${jobs[i].kind}: ${r.reason?.message||'연결 실패'}`)});results=uniqueVisualCards(uniqueHeadlines(Array.from(uniq.values()).filter(item=>isKoreanCandidate(item)).map(item=>curateStudentCard(item,cats)).filter(Boolean)));
-if(cats.length>1){
-  // 여러 분야를 선택한 경우, 선택 분야가 두 개 일치하는 카드를 먼저 표시.
-  // 같은 점수의 후보는 검색 API가 반환한 기존 순서를 유지합니다.
-  results.sort((a,b)=>selectedTagCount(b,cats)-selectedTagCount(a,cats));
+async function search(){
+ if(busy)return;
+ const cats=selected('cats'),forms=selected('forms'),term=$('keyword').value.trim();
+ const max=Math.min(15,Math.max(1,Number($('limit').value)||10));
+ if(!cats.length||!forms.length){alert('분야와 콘텐츠 형태를 하나 이상 선택해 주세요.');return;}
+ busy=true;results=[];lastSearchCats=cats.slice();tab='results';
+ $('search').disabled=true;
+ document.querySelectorAll('.transientSearchMessage').forEach(el=>el.remove());
+ const jobs=[];
+ // 검색할 분야가 여러 개여도 외부 요청은 최대 두 작업씩만 진행합니다.
+ for(const cat of cats){
+   if(forms.includes('기사'))jobs.push({cat,kind:'위키백과',run:()=>wiki(cat,term,max)});
+   if(forms.includes('영상'))jobs.push({cat,kind:'Wikimedia 영상',run:()=>commons(cat,term,max)});
+ }
+ const errors=[],unique=new Map();
+ let finished=0,successful=0;
+ const refresh=()=>{
+   const candidates=uniqueHeadlines(
+     [...unique.values()].filter(isKoreanCandidate)
+       .map(item=>curateStudentCard({...item},cats)).filter(Boolean)
+   );
+   // 요청 수는 카테고리당 지정한 최대치를 넘기지 않도록 보수적으로 제한.
+   candidates.sort((a,b)=>selectedTagCount(b,cats)-selectedTagCount(a,cats));
+   const counts=Object.fromEntries(cats.map(c=>[c,0]));
+   const limited=candidates.filter(item=>{
+     const base=cats.includes(item.category)?item.category:cats[0];
+     if((counts[base]||0)>=max)return false;
+     counts[base]=(counts[base]||0)+1;return true;
+   });
+   results=uniqueVisualCards(limited);
+   render();
+   if(busy)setStatus('콘텐츠 검색 중 · '+finished+'/'+jobs.length+'개 분야·형태 검색 완료 · '+results.length+'개 후보를 먼저 표시했어요.');
+ };
+ try{
+   if(!jobs.length)return;
+   setStatus('검색 서버 연결 및 콘텐츠 탐색을 시작합니다.');
+   // 서로 다른 검색 2개까지만 동시에 진행. 완료된 후보를 먼저 화면에 표시.
+   let nextIndex=0;
+   const worker=async()=>{
+     while(nextIndex<jobs.length){
+       const job=jobs[nextIndex++];
+       try{
+         const found=await job.run();
+         successful++;
+         for(const x of found){
+           if(!x?.url)continue;
+           const previous=unique.get(x.url);
+           if(previous){
+             if((x.fullText||'').length>(previous.fullText||'').length)previous.fullText=x.fullText;
+           }else unique.set(x.url,x);
+         }
+       }catch(e){
+         errors.push(job.cat+' '+job.kind+': '+(e?.message||'검색 연결 실패'));
+       }finally{
+         finished++;
+         refresh();
+       }
+     }
+   };
+   await Promise.all(Array.from({length:Math.min(2,jobs.length)},()=>worker()));
+ }finally{
+   busy=false;$('search').disabled=false;refresh();
+   if(errors.length){
+     const warn=document.createElement('div');
+     warn.className='notice transientSearchMessage';
+     warn.style.marginBottom='12px';
+     warn.textContent='일부 검색 연결 실패 ('+errors.length+'/'+jobs.length+'): '+errors.slice(0,2).join(' / ')+(errors.length>2?' 외 '+(errors.length-2)+'건':'')+'. 이미 찾은 카드는 유지했어요. 연결이 계속 실패하면 사이트 주소 뒤에 /health를 붙여 서버 상태를 확인하세요.';
+     $('results').before(warn);
+   }
+   if(forms.includes('영상') && !results.some(x=>x.form==='영상')){
+     const note=document.createElement('div');note.className='notice transientSearchMessage';
+     note.textContent='한국어 제목·설명이 확인되는 Wikimedia Commons 영상이 부족할 수 있어요. 아래 유튜브 검색 링크를 활용해 주세요.';
+     $('results').before(note);
+   }
+   const finder=externalFinder(cats,forms,term);finder.classList.add('transientSearchMessage');$('results').before(finder);
+   if(!successful && !results.length)setStatus('검색 서버가 응답하지 않았습니다. /health로 서버 상태를 확인하거나 잠시 뒤 다시 시도해 주세요.');
+ }
 }
-busy=false;$('search').disabled=false;render();if(errs.length){const warn=document.createElement('div');warn.className='notice transientSearchMessage';warn.style.marginBottom='12px';warn.textContent='외부 서비스 응답 오류: '+errs.slice(0,3).join(' / ')+(errs.length>3?' 외 '+(errs.length-3)+'건':'');$('results').before(warn)}if(forms.includes('영상')&&!key){const note=document.createElement('div');note.className='notice transientSearchMessage';note.textContent='유튜브 자동 검색은 현재 비활성화되어 Wikimedia Commons 영상을 검색했어요. 아래 직접 검색에서 유튜브를 열 수 있어요.';$('results').before(note)}if(forms.includes('영상') && !results.some(x=>x.form==='영상')){
-  const languageNotice=document.createElement('div');
-  languageNotice.className='notice transientSearchMessage';
-  languageNotice.textContent='한국어 제목과 설명이 확인되는 영상이 부족해 영상 카드가 없을 수 있어요. 아래 유튜브 검색에서 한국어 영상 후보를 직접 확인해 주세요.';
-  $('results').before(languageNotice);
-}
-const finder=externalFinder(cats,forms,term);finder.classList.add('transientSearchMessage');$('results').before(finder)}
 $('search').addEventListener('click',search);$('tabResults').addEventListener('click',()=>{tab='results';render()});$('tabSaved').addEventListener('click',()=>{tab='saved';render()});$('keyword').addEventListener('keydown',e=>{if(e.key==='Enter')search()});
 function csvEscape(v){const s=String(v??'');return '"'+s.replaceAll('"','""')+'"'}function exportCSV(){if(!saved.length){alert('먼저 후보를 저장해 주세요.');return}const cols=['분야1','분야2','형태','제목','원본제목','소개','분야연결근거','추천이유','원본URL','출처','썸네일URL','링크검증','개발반영상태','저장일'];const rows=saved.map(x=>[x.tags?.[0]||'',x.tags?.[1]||'',x.form,x.title,x.originalTitle||x.title,x.description,x.evidence||'',x.reason,x.url,x.source,x.thumbnail,x.verified?'수동 확인':'미확인','미확인',x.created]);const csv='\ufeff'+[cols,...rows].map(row=>row.map(csvEscape).join(',')).join('\r\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='맘고리즘_콘텐츠후보_'+new Date().toISOString().slice(0,10)+'.csv';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}$('export').addEventListener('click',exportCSV);$('importBtn').addEventListener('click',()=>$('importFile').click());function parseCSV(text){const rows=[];let row=[],value='',q=false;for(let i=0;i<text.length;i++){const c=text[i];if(q){if(c==='"'&&text[i+1]==='"'){value+='"';i++}else if(c==='"')q=false;else value+=c}else if(c==='"')q=true;else if(c===','){row.push(value);value=''}else if(c==='\n'){row.push(value.replace(/\r$/,''));rows.push(row);row=[];value=''}else value+=c}if(value||row.length){row.push(value);rows.push(row)}return rows}
 $('importFile').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const rows=parseCSV((await file.text()).replace(/^\ufeff/,''));const headers=rows.shift()||[];let n=0;for(const row of rows){const o=Object.fromEntries(headers.map((h,i)=>[h,row[i]||'']));if(!safeURL(o['원본URL'])||saved.some(x=>x.url===o['원본URL']))continue;const tags=[o['분야1'],o['분야2']].filter(x=>CAT.includes(x)).slice(0,2);const original=o['원본제목']||o['제목'];saved.push({...mkResult({title:original,url:o['원본URL'],thumbnail:o['썸네일URL'],description:o['소개'],source:o['출처'],form:o['형태']==='영상'?'영상':'기사',category:tags[0]||'공부'}),title:o['제목'],originalTitle:original,titleStatus:'CSV 가져옴',tags,evidence:o['분야연결근거']||'',reason:o['추천이유']||'',verified:o['링크검증']==='수동 확인'});n++}persist();tab='saved';render();alert(n+'개 후보를 불러왔습니다.')}catch(err){alert('CSV 읽기에 실패했습니다: '+err.message)}e.target.value='' });render();
