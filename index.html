@@ -78,7 +78,7 @@ button:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px soli
 .thumb-eyebrow,.thumb-note{font-size:11px;font-weight:650;opacity:.73}
 .thumb-topic{font-size:clamp(21px,2.3vw,29px);line-height:1.25;word-break:keep-all;letter-spacing:-.035em;max-width:95%}
 .tag.mix{color:#5742a2;background:#efeafd}.evidence{font-size:11px;color:#506b8b;border-top:1px dashed #d6e2f4;padding-top:7px}.desc{line-height:1.7}</style></head>
-<body><div class="shell"><header><div class="logo"><div class="mark">✦</div><div><h1>맘고리즘 콘텐츠 탐색기</h1><p class="sub">이승민 콘텐츠 조사 도구 · 검색 → 검토 → 후보 저장</p></div></div><span class="pill">모바일·웹 공유용 v7</span></header>
+<body><div class="shell"><header><div class="logo"><div class="mark">✦</div><div><h1>맘고리즘 콘텐츠 탐색기</h1><p class="sub">이승민 콘텐츠 조사 도구 · 검색 → 검토 → 후보 저장</p></div></div><span class="pill">모바일·웹 공유용 v8</span></header>
 <div class="layout"><aside class="panel side"><h2>🔎 탐색 조건</h2><div class="sec"><label class="field">관심 분야 · 여러 개 선택 가능</label><div class="choices" id="cats"><label class="choice"><input type="checkbox" value="공부" checked>📘 공부</label><label class="choice"><input type="checkbox" value="기술" checked>💻 기술</label><label class="choice"><input type="checkbox" value="문화">🎬 문화</label><label class="choice"><input type="checkbox" value="취미">🎨 취미</label></div></div>
 <div class="sec"><label class="field">콘텐츠 형태 · 여러 개 선택 가능</label><div class="choices" id="forms"><label class="choice"><input type="checkbox" value="기사" checked>📰 기사·글</label><label class="choice"><input type="checkbox" value="영상" checked>▶ 영상</label></div></div>
 <div class="sec"><label class="field" for="keyword">세부 검색어 (선택)</label><input class="input" id="keyword" placeholder="예: 인공지능, 학습법, 영화" maxlength="100"><p class="tiny" style="margin-top:6px">입력하면 각 분야와 함께 검색해요.</p></div>
@@ -216,15 +216,23 @@ function suggestCardTitle(originalTitle,description,category){
   return rule?rule[1]:original;
 }
 function uniqueHeadlines(cards){
-  const used=new Set();
-  const keyOf=x=>tidy(x).replace(/[\s"'‘’“”.,!?]/g,'').toLowerCase();
-  return cards.filter(item=>{
-    const key=keyOf(item.title);
-    // 자동 생성된 제목이 겹친다면 한 단어짜리 원제로 되돌리지 않고 중복 후보를 제외합니다.
-    if(!key||used.has(key))return false;
-    used.add(key);
-    return true;
-  });
+ const usedTexts=new Set(),usedFrames=new Set();
+ const normalize=x=>tidy(x).replace(/[\s"'‘’“”.,!?]/g,'').toLowerCase();
+ const output=[];
+ for(const item of cards){
+  const variants=item.headlineAlternatives?.length?item.headlineAlternatives:[item.title];
+  let chosen='';
+  for(const proposed of variants){
+   const text=normalize(proposed),frame=headlineFrame(proposed,item.originalTitle||item.title);
+   if(!text||usedTexts.has(text)||usedFrames.has(frame))continue;
+   chosen=proposed;usedTexts.add(text);usedFrames.add(frame);break;
+  }
+  // 문구만 바꾼 중복 제목을 그대로 노출하지 않고, 다른 주제/발췌 후보를 우선합니다.
+  if(!chosen)continue;
+  item.title=chosen;
+  output.push(item);
+ }
+ return output;
 }
 
 // 규칙을 초기화한 다음 기존 후보를 불러와서 직접 수정한 제목을 안전하게 보존합니다.
@@ -388,28 +396,69 @@ function excerptCandidates(fullText,categories){
  }
  return pool.sort((a,b)=>b.score-a.score || a.position-b.position);
 }
-function crossoverHeadline(original,excerpt,tags){
- const raw=cleanTopicName(original),t=String(excerpt||'');
+// 복합 분야라고 해서 같은 문구에 주제 이름만 넣지 않습니다.
+// 실제 발췌 구간에서 확인된 특징과 원본 주제를 함께 고려합니다.
+const BAD_EDITORIAL_FRAME=/(즐기는 활동이 문화가 되는 순간|즐거운 활동에서 발견하는 배움의 원리|으로 연결되는 배움과 기술의 원리)/;
+const ORGANIZATION_TITLE=/(대학교|전문대학|교육대학교|고등학교|중학교|초등학교|교육청|교육원|학원$|재단$|협회$|공사$|주식회사|방송국|방송사|여행사|출판사|연구소$|기업$)/;
+function topicSpecificHeadlines(original,excerpt,tags){
+ const raw=cleanTopicName(original),text=String(excerpt||'');
  const both=(a,b)=>tags.includes(a)&&tags.includes(b);
+ if(both('문화','취미')&&/요리|식문화|음식|식재료|조리/.test(text)){
+  if(/^(요리|요리법)$/.test(raw))
+    return ['우리가 만드는 한 끼에도 문화가 숨어 있을까?','한 접시 안에 담긴 지역과 문화의 이야기'];
+  if(/^(한국\s*요리|한식)$/.test(raw))
+    return ['한식은 어떻게 한국의 식문화를 담아낼까?','한국 요리에 담긴 식재료와 조리법의 이야기'];
+  if(/^(중국\s*요리|중화\s*요리)$/.test(raw))
+    return ['중국 요리, 음식으로 살펴보는 또 하나의 문화','중국의 음식 문화에는 무엇이 담겨 있을까?'];
+  if(/^(일본\s*요리|일식)$/.test(raw))
+    return ['일본 식탁에서 발견하는 음식 문화','일본 요리는 어떤 식재료와 조리법을 사용해 왔을까?'];
+  if(/^(이탈리아\s*요리)$/.test(raw))
+    return ['이탈리아 요리를 통해 만나는 식문화','이탈리아의 음식에는 어떤 이야기가 담겨 있을까?'];
+  if(/^(프랑스\s*요리)$/.test(raw))
+    return ['프랑스 요리가 하나의 문화로 자리 잡은 과정','프랑스의 식탁에는 어떤 전통이 담겨 있을까?'];
+  // 근거가 없는 국가·학교 이름에 '맛있는' '매력'을 임의로 붙이지 않습니다.
+ }
  if(both('공부','기술')){
-  if(/신경망|인공지능|알고리즘/.test(t)&&/뇌|인지과학|생물학|신경/.test(t))return '인공지능은 사람의 뇌에서 어떤 아이디어를 얻었을까?';
-  if(/학습|교육|학생|학교/.test(t)&&/인공지능|컴퓨터|디지털|기술/.test(t))return raw+'으로 연결되는 배움과 기술의 원리';
+  if(/^(인공\s*신경망|인공신경망)$/.test(raw)&&/뇌|신경|인지과학|생물학/.test(text))
+   return ['사람의 뇌를 닮은 인공 신경망의 아이디어','뇌과학에서 출발한 인공지능의 학습 원리'];
+  if(/^(기계\s*학습|머신러닝)$/.test(raw)&&/학습|데이터/.test(text))
+   return ['기계가 데이터를 보고 배운다는 건 무슨 뜻일까?','컴퓨터가 경험을 지식으로 바꾸는 방법'];
+  if(/^(강화\s*학습)$/.test(raw)&&/보상|행동/.test(text))
+   return ['보상 하나로 달라지는 인공지능의 선택','인공지능은 보상을 통해 어떻게 학습할까?'];
  }
  if(both('기술','문화')){
-  if(/영화|애니메이션|영상/.test(t))return '영상과 디지털 기술은 어떻게 만날까?';
-  if(/음악|예술|디자인/.test(t))return '기술은 예술을 표현하는 방식을 어떻게 바꿀까?';
+  if(/컴퓨터\s*그래픽|CG/.test(raw)&&/영화|영상|애니메이션/.test(text))
+   return ['영화 속 불가능한 장면은 어떻게 만들어질까?','실사와 애니메이션 사이, 컴퓨터 그래픽의 역할'];
+  if(/디지털\s*아트|미디어\s*아트/.test(raw))
+   return ['화면과 기술이 예술이 되는 순간','디지털 기술로 표현하는 새로운 예술'];
  }
- if(both('문화','취미')&&/요리|독서|사진|공예|음악|악기/.test(t))
-  return '즐기는 활동이 문화가 되는 순간, '+raw;
- if(both('공부','취미')&&/게임|독서|음악|퍼즐|취미/.test(t))
-  return '즐거운 활동에서 발견하는 배움의 원리';
- return '';
+ if(both('공부','취미')){
+  if(/퍼즐/.test(raw)&&/사고|문제|기억|학습/.test(text))
+   return ['퍼즐을 풀 때 머릿속에서 일어나는 일','퍼즐은 어떤 사고 과정을 필요로 할까?'];
+  if(/독서/.test(raw)&&/기억|학습|인지|지식/.test(text))
+   return ['책을 읽으면 정보는 어떻게 기억에 남을까?','읽은 내용을 내 지식으로 바꾸는 과정'];
+ }
+ return [];
 }
-function excerptHeadline(original,excerpt,tags){
+function headlineOptions(original,excerpt,tags){
  const raw=cleanTopicName(original);
- const cross=crossoverHeadline(original,excerpt,tags);
- if(cross && cross.length<=65)return cross;
- return groundedHeadline(raw,excerpt);
+ const special=topicSpecificHeadlines(raw,excerpt,tags);
+ // 별도의 제목을 만들 근거가 있으면 해당 주제만의 제목을 먼저 사용합니다.
+ const generic=groundedHeadline(raw,excerpt);
+ const candidates=[...special,generic];
+ const seen=new Set();
+ return candidates.filter(t=>{
+  const title=tidy(t);
+  const k=title.replace(/\s+/g,'');
+  if(!title||title.length<13||title.length>65||!/^[가-힣]/.test(title)||BAD_EDITORIAL_FRAME.test(title)||seen.has(k))return false;
+  seen.add(k);return true;
+ });
+}
+function excerptHeadline(original,excerpt,tags){return headlineOptions(original,excerpt,tags)[0]||''}
+function headlineFrame(title,original){
+  const normalized=tidy(title).toLowerCase().replace(/[\s"'‘’“”.,!?]/g,'');
+  const subject=cleanTopicName(original).toLowerCase().replace(/\s/g,'');
+  return subject&&normalized.includes(subject)?normalized.split(subject).join('{주제}'):normalized;
 }
 function curateStudentCard(item,categories){
  if(item.source!=='한국어 위키백과'){
@@ -417,18 +466,20 @@ function curateStudentCard(item,categories){
  }
  const raw=String(item.fullText||item.description||'');
  if(!hasUsefulSummary(raw))return null;
+ if(ORGANIZATION_TITLE.test(item.originalTitle||item.title||''))return null;
  const candidates=excerptCandidates(raw,categories);
  if(!candidates.length)return null;
  let winner=null;
  // 본문 근거가 확인된 구간만 채택합니다. 자동 제목이 구성 불가능하면 후보에서 제외합니다.
  for(const candidate of candidates){
-   const title=excerptHeadline(item.originalTitle||item.title,candidate.text,candidate.tags);
-   if(!title||title.length>70||! /^[가-힣]/.test(title))continue;
-   winner={...candidate,title};break;
+   const options=headlineOptions(item.originalTitle||item.title,candidate.text,candidate.tags);
+   if(!options.length)continue;
+   winner={...candidate,title:options[0],headlineAlternatives:options};break;
  }
  if(!winner)return null;
  item.description=winner.text;
  item.title=winner.title;
+ item.headlineAlternatives=winner.headlineAlternatives;
  item.tags=winner.tags.slice(0,2);
  item.titleStatus='본문 발췌 기반 · 승민 검토 필요';
  item.evidence=winner.signals.filter(x=>item.tags.includes(x.cat)).map(x=>x.cat+': '+x.hits.slice(0,2).join('·')).join(' / ');
