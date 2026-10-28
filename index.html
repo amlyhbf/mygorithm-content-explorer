@@ -224,7 +224,7 @@ function uniqueHeadlines(cards){
   let chosen='';
   for(const proposed of variants){
    const text=normalize(proposed),frame=headlineFrame(proposed,item.originalTitle||item.title);
-   if(!text||usedTexts.has(text)||usedFrames.has(frame))continue;
+   if(!text||BAD_EDITORIAL_FRAME.test(proposed)||usedTexts.has(text)||usedFrames.has(frame))continue;
    chosen=proposed;usedTexts.add(text);usedFrames.add(frame);break;
   }
   // 문구만 바꾼 중복 제목을 그대로 노출하지 않고, 다른 주제/발췌 후보를 우선합니다.
@@ -236,8 +236,6 @@ function uniqueHeadlines(cards){
 }
 
 // 규칙을 초기화한 다음 기존 후보를 불러와서 직접 수정한 제목을 안전하게 보존합니다.
-saved=readSaved();persist();
-
 function hasUsefulSummary(text){
  const value=tidy(text||'');
  const hangul=(value.match(/[가-힣]/g)||[]).length;
@@ -445,7 +443,7 @@ function headlineOptions(original,excerpt,tags){
  const special=topicSpecificHeadlines(raw,excerpt,tags);
  // 별도의 제목을 만들 근거가 있으면 해당 주제만의 제목을 먼저 사용합니다.
  const generic=groundedHeadline(raw,excerpt);
- const candidates=[...special,generic];
+ const candidates=special.length?special:[generic];
  const seen=new Set();
  return candidates.filter(t=>{
   const title=tidy(t);
@@ -814,5 +812,5 @@ $('more').addEventListener('click',loadMore);
 
 $('search').addEventListener('click',search);$('tabResults').addEventListener('click',()=>{tab='results';render()});$('tabSaved').addEventListener('click',()=>{tab='saved';render()});$('keyword').addEventListener('keydown',e=>{if(e.key==='Enter')search()});
 function csvEscape(v){const s=String(v??'');return '"'+s.replaceAll('"','""')+'"'}function exportCSV(){if(!saved.length){alert('먼저 후보를 저장해 주세요.');return}const cols=['분야1','분야2','형태','제목','원본제목','소개','분야연결근거','추천이유','원본URL','출처','썸네일URL','링크검증','개발반영상태','저장일'];const rows=saved.map(x=>[x.tags?.[0]||'',x.tags?.[1]||'',x.form,x.title,x.originalTitle||x.title,x.description,x.evidence||'',x.reason,x.url,x.source,x.thumbnail,x.verified?'수동 확인':'미확인','미확인',x.created]);const csv='\ufeff'+[cols,...rows].map(row=>row.map(csvEscape).join(',')).join('\r\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='맘고리즘_콘텐츠후보_'+new Date().toISOString().slice(0,10)+'.csv';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}$('export').addEventListener('click',exportCSV);$('importBtn').addEventListener('click',()=>$('importFile').click());function parseCSV(text){const rows=[];let row=[],value='',q=false;for(let i=0;i<text.length;i++){const c=text[i];if(q){if(c==='"'&&text[i+1]==='"'){value+='"';i++}else if(c==='"')q=false;else value+=c}else if(c==='"')q=true;else if(c===','){row.push(value);value=''}else if(c==='\n'){row.push(value.replace(/\r$/,''));rows.push(row);row=[];value=''}else value+=c}if(value||row.length){row.push(value);rows.push(row)}return rows}
-$('importFile').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const rows=parseCSV((await file.text()).replace(/^\ufeff/,''));const headers=rows.shift()||[];let n=0;for(const row of rows){const o=Object.fromEntries(headers.map((h,i)=>[h,row[i]||'']));if(!safeURL(o['원본URL'])||saved.some(x=>x.url===o['원본URL']))continue;const tags=[o['분야1'],o['분야2']].filter(x=>CAT.includes(x)).slice(0,2);const original=o['원본제목']||o['제목'];saved.push({...mkResult({title:original,url:o['원본URL'],thumbnail:o['썸네일URL'],description:o['소개'],source:o['출처'],form:o['형태']==='영상'?'영상':'기사',category:tags[0]||'공부'}),title:o['제목'],originalTitle:original,titleStatus:'CSV 가져옴',tags,evidence:o['분야연결근거']||'',reason:o['추천이유']||'',verified:o['링크검증']==='수동 확인'});n++}persist();tab='saved';render();alert(n+'개 후보를 불러왔습니다.')}catch(err){alert('CSV 읽기에 실패했습니다: '+err.message)}e.target.value='' });render();
+$('importFile').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const rows=parseCSV((await file.text()).replace(/^\ufeff/,''));const headers=rows.shift()||[];let n=0;for(const row of rows){const o=Object.fromEntries(headers.map((h,i)=>[h,row[i]||'']));if(!safeURL(o['원본URL'])||saved.some(x=>x.url===o['원본URL']))continue;const tags=[o['분야1'],o['분야2']].filter(x=>CAT.includes(x)).slice(0,2);const original=o['원본제목']||o['제목'];saved.push({...mkResult({title:original,url:o['원본URL'],thumbnail:o['썸네일URL'],description:o['소개'],source:o['출처'],form:o['형태']==='영상'?'영상':'기사',category:tags[0]||'공부'}),title:o['제목'],originalTitle:original,titleStatus:'CSV 가져옴',tags,evidence:o['분야연결근거']||'',reason:o['추천이유']||'',verified:o['링크검증']==='수동 확인'});n++}persist();tab='saved';render();alert(n+'개 후보를 불러왔습니다.')}catch(err){alert('CSV 읽기에 실패했습니다: '+err.message)}e.target.value='' });saved=readSaved();persist();render();
 </script></body></html>
