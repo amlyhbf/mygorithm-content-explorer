@@ -533,7 +533,7 @@ async function wiki(category,term,max,cursor=null){
  for(const {page} of shortlist){
    const args=new URLSearchParams({
      action:'query',format:'json',pageids:String(page.pageid),
-     prop:'extracts',explaintext:'1',exchars:'2400'
+     prop:'extracts',explaintext:'1',exchars:'1100'
    });
    try{
      const data=await wikiJSON('https://ko.wikipedia.org/w/api.php?'+args);
