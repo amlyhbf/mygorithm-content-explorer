@@ -379,7 +379,7 @@ function excerptCandidates(fullText,categories){
  for(let i=0;i<sentences.length;i++){
   for(let size=1;size<=3&&i+size<=sentences.length;size++){
     const joined=sentences.slice(i,i+size).join(' ').trim();
-    if(joined.length<85 || joined.length>410)continue;
+    if(joined.length<65 || joined.length>410)continue;
     const signals=categories.map(cat=>({cat,hits:passageKeywords(joined,cat)}));
     const matched=signals.filter(x=>x.hits.length);
     if(!matched.length)continue;
