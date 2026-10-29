@@ -739,12 +739,36 @@ function topicSpecificHeadlines(original,excerpt,tags){
  }
  return [];
 }
+
+const SOURCE_SPECIFIC_HEADLINES=[
+ [/^로봇공학$/, /로봇|센서|동작|기계/, '로봇은 주변을 어떻게 인식하고 움직일까?'],
+ [/^정보\s*보안$/, /보안|암호|인터넷|정보|데이터/, '인터넷에서 내 정보는 어떻게 보호될까?'],
+ [/^천문학$/, /별|행성|천체|우주/, '별과 행성의 비밀은 어떻게 밝혀질까?'],
+ [/^기상학$/, /기상|날씨|기온|바람|예측/, '내일 날씨는 어떻게 예측하는 걸까?'],
+ [/^디지털\s*사진$/, /디지털|사진|촬영|이미지/, '사진 한 장은 어떻게 디지털 정보로 저장될까?'],
+ [/^중국\s*요리$/, /지역|음식|문화|재료|조리/, '중국 요리는 지역마다 무엇이 다를까?'],
+ [/^(한국\s*요리|한식)$/, /한국|한식|음식|조리|문화/, '한식 한 접시에는 어떤 전통이 담겨 있을까?'],
+ [/^(요리|조리)$/, /음식|조리|재료|요리/, '재료가 음식이 되기까지 어떤 변화가 일어날까?'],
+ [/^원예$/, /정원|화분|재배|식물|꽃/, '작은 화분에서 식물을 키우려면 무엇이 필요할까?'],
+ [/^캠핑$/, /텐트|캠핑|야외|숲/, '텐트를 치고 자연에서 하루를 보내는 방법'],
+ [/^(보드\s*게임|보드게임)$/, /게임|규칙|말|판/, '같은 게임도 규칙에 따라 결과가 달라질까?'],
+ [/^반도체$/, /전기|반도체|집적|전자/, '스마트폰 속 작은 반도체는 어떤 일을 할까?']
+];
+function sourceSpecificHeadline(original,excerpt){
+ const subject=cleanTopicName(original);
+ for(const [titlePattern,evidencePattern,headline] of SOURCE_SPECIFIC_HEADLINES){
+  if(titlePattern.test(subject)&&evidencePattern.test(excerpt))return headline;
+ }
+ return '';
+}
+
 function headlineOptions(original,excerpt,tags){
  const raw=cleanTopicName(original);
+ const specific=sourceSpecificHeadline(raw,excerpt);
  const special=topicSpecificHeadlines(raw,excerpt,tags);
- // 별도의 제목을 만들 근거가 있으면 해당 주제만의 제목을 먼저 사용합니다.
+ // 출처에서 실제 관련 문장이 확인되는 주제별 제목을 최우선으로, 근거 없는 매력·효능은 붙이지 않습니다.
  const generic=groundedHeadline(raw,excerpt);
- const candidates=special.length?special:[generic];
+ const candidates=specific?[specific,...special]:special.length?special:[generic];
  const seen=new Set();
  return candidates.filter(t=>{
   const title=tidy(t);
@@ -784,9 +808,12 @@ function curateStudentCard(item,categories){
  item.evidence=winner.signals.filter(x=>item.tags.includes(x.cat)).map(x=>x.cat+': '+x.hits.slice(0,2).join('·')).join(' / ');
  item.excerptPosition=winner.position;
  // 기존의 정치·기관 필터를 본문 발췌 후에도 적용하되, 분야는 선택 구간의 실제 일치 단어로만 결정합니다.
- const backedUpTags=item.tags.slice();
- if(!isRelevantCandidate(item,categories))return null;
- item.tags=backedUpTags;
+ const original=tidy(item.originalTitle||item.title||'');
+ // 주제 태그는 이미 발췌한 문장에서 확인했으므로 '원문 첫 문장에 단어가 3번 등장'하는
+ // 별도의 점수 조건으로 다시 제거하지 않습니다. 민감·기관·언어 검사는 그대로 수행합니다.
+ if(!isKoreanCandidate(item)||SENSITIVE_TOPICS.test(original)||GENERAL_ENTITY_TITLES.test(original))return null;
+ if(/(?:독재|최고지도자|대통령|군사\s*정권|학살|전쟁범죄)/.test(item.description.slice(0,220)))return null;
+ if(ORGANIZATION_LEAD.test(item.description.slice(0,140))&&!topicMatches(original,'기술').length)return null;
  return item;
 }
 
