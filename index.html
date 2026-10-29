@@ -146,7 +146,7 @@ button:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px soli
 .personalized-hint{color:#3264b0;font-size:11px;font-weight:650;margin-top:3px}
 @media(max-width:570px){.tabs{flex-wrap:wrap}.reroll-button{flex:1;min-width:120px}}
 </style></head>
-<body><div class="shell"><header><div class="logo"><div class="mark">✦</div><div><h1>맘고리즘 콘텐츠 탐색기</h1><p class="sub">이승민 콘텐츠 조사 도구 · 검색 → 검토 → 후보 저장</p></div></div><span class="pill">모바일·웹 공유용 v11</span></header>
+<body><div class="shell"><header><div class="logo"><div class="mark">✦</div><div><h1>맘고리즘 콘텐츠 탐색기</h1><p class="sub">이승민 콘텐츠 조사 도구 · 검색 → 검토 → 후보 저장</p></div></div><span class="pill">모바일·웹 공유용 v12</span></header>
 <div class="layout"><aside class="panel side"><h2>🔎 탐색 조건</h2><div class="sec"><label class="field">관심 분야 · 여러 개 선택 가능</label><div class="choices" id="cats"><label class="choice"><input type="checkbox" value="공부" checked>📘 공부</label><label class="choice"><input type="checkbox" value="기술" checked>💻 기술</label><label class="choice"><input type="checkbox" value="문화">🎬 문화</label><label class="choice"><input type="checkbox" value="취미">🎨 취미</label></div></div>
 <div class="sec"><label class="field">콘텐츠 형태 · 여러 개 선택 가능</label><div class="choices" id="forms"><label class="choice"><input type="checkbox" value="기사" checked>📰 기사·글</label><label class="choice"><input type="checkbox" value="영상" checked>▶ 영상</label></div></div>
 <div class="sec"><label class="field" for="keyword">세부 검색어 (선택)</label><input class="input" id="keyword" placeholder="예: 인공지능, 학습법, 영화" maxlength="100"><p class="tiny" style="margin-top:6px">입력하면 각 분야와 함께 검색해요.</p></div>
@@ -1033,7 +1033,7 @@ async function search(){
  const cats=selected('cats'),forms=selected('forms'),term=$('keyword').value.trim();
  const max=Math.min(15,Math.max(1,Number($('limit').value)||10));
  if(!cats.length||!forms.length){alert('분야와 콘텐츠 형태를 하나 이상 선택해 주세요.');return;}
- busy=true;results=[];lastSearchCats=cats.slice();articleSearchState={cats:cats.slice(),forms:forms.slice(),term,max,articleJobs:[],videoJobs:[],rawCandidates:new Map(),seenUrls:new Set(),seenTopics:new Set(),rotationIndex:0};tab='results';$('moreWrap').style.display='none';
+ busy=true;results=[];lastSearchCats=cats.slice();articleSearchState={cats:cats.slice(),forms:forms.slice(),term,max,articleJobs:[],videoJobs:[],rawCandidates:new Map(),seenUrls:new Set(),seenTopics:new Set(),seenThemes:new Set(),rotationIndex:0};tab='results';$('moreWrap').style.display='none';
  $('search').disabled=true;updateRerollButton();
  document.querySelectorAll('.transientSearchMessage').forEach(el=>el.remove());
  const jobs=[];
@@ -1077,12 +1077,8 @@ async function search(){
        .map(item=>curateStudentCard({...item},cats)).filter(Boolean),cats);
    // 중복 제목을 정리하기 전에 복합 분야 카드를 먼저 정렬하여 우선 보존합니다.
    const candidates=uniqueHeadlines(curated);
-   const counts=Object.fromEntries(cats.map(c=>[c,0]));
-   const limited=candidates.filter(item=>{
-     const base=cats.includes(item.category)?item.category:cats[0];
-     if((counts[base]||0)>=max)return false;
-     counts[base]=(counts[base]||0)+1;return true;
-   });
+   // 같은 주제의 변형을 여러 장 보여주는 대신 다른 이야기부터 한 장씩 고릅니다.
+   const limited=selectDiverseTopics(candidates,cats,max);
    results=uniqueVisualCards(limited);
    articleSearchState.rawCandidates=new Map(unique);
    render();
@@ -1159,6 +1155,7 @@ function notePreviousResults(state,items=results){
   const id=canonicalCardKey(item),topic=topicCardKey(item);
   if(id)state.seenUrls.add(id);
   if(topic)state.seenTopics.add(topic);
+  state.seenThemes.add(semanticTopicFamily(item));
  }
 }
 function selectUnseenCards(state){
@@ -1169,15 +1166,9 @@ function selectUnseenCards(state){
     &&!seenUrls.has(canonicalCardKey(x))&&!seenTitles.has(topicCardKey(x)))
   .map(x=>curateStudentCard({...x},state.cats)).filter(Boolean);
  const ordered=uniqueHeadlines(rankForUser(candidates,state.cats));
- const chosen=[],counts=Object.fromEntries(state.cats.map(c=>[c,0]));
- for(const item of ordered){
-  const cat=state.cats.includes(item.category)?item.category:state.cats[0];
-  if((counts[cat]||0)>=state.max)continue;
-  // 서로 다른 원본에서 동일한 제목·주제가 나오는 경우도 현재 회차 안에서 중복되지 않게 처리.
-  if(chosen.some(x=>canonicalCardKey(x)===canonicalCardKey(item)||topicCardKey(x)===topicCardKey(item)))continue;
-  counts[cat]=(counts[cat]||0)+1;chosen.push(item);
- }
- return uniqueVisualCards(chosen);
+ const chosen=selectDiverseTopics(ordered,state.cats,state.max);
+ const filtered=chosen.filter(item=>!state.seenThemes?.has(semanticTopicFamily(item)));
+ return uniqueVisualCards(filtered);
 }
 function updateRerollButton(){
  const b=$('reroll');
@@ -1294,7 +1285,9 @@ async function loadMore(){
       updateSearchProgress({phase:'searching',done:moreDone,total:nextJobs.length,found:byUrl.size,errors:errors.length,more:true});
     }
   }
-  results=uniqueVisualCards(uniqueHeadlines(rankForUser([...byUrl.values()],state.cats)));
+  results=uniqueVisualCards(selectDiverseTopics(
+    uniqueHeadlines(rankForUser([...byUrl.values()],state.cats)),state.cats,state.max
+  ).filter(x=>!state.seenThemes.has(semanticTopicFamily(x))));
   busy=false;$('search').disabled=false;render();updateLoadMore();
   updateSearchProgress({phase:errors.length===nextJobs.length?'failed':'done',done:moreDone,total:nextJobs.length,found:results.length,errors:errors.length,more:true});
   if(errors.length)setStatus('새 기사 일부 검색 실패: '+errors.join(' / ')+'. 기존 후보는 모두 유지했습니다.');
