@@ -428,6 +428,78 @@ function suggestCardTitle(originalTitle,description,category){
   // 주제에 맞는 개별 제목을 확인할 수 없는 경우에는 상투적인 틀을 적용하지 않습니다.
   return rule?rule[1]:original;
 }
+
+// '제목 글자'가 달라도 내용이 같은 주제면 하나로 간주합니다.
+// 원본 제목을 기준으로 비교하여 재미를 위한 제목 표현이 분류에 영향을 주지 않게 합니다.
+const TOPIC_FAMILIES=[
+ ['ai',/인공지능|생성형\s*ai|챗\s*gpt|chatgpt|기계\s*학습|머신러닝|강화\s*학습|지도\s*학습|비지도\s*학습|딥\s*러닝|심층\s*학습|인공\s*신경망|트랜스포머|언어\s*모델|퍼셉트론|신경망/i],
+ ['robots',/로봇|로보틱스|드론|무인\s*항공/i],
+ ['security',/정보\s*보안|사이버\s*보안|해킹|암호화|컴퓨터\s*바이러스|악성\s*코드/i],
+ ['semiconductor',/반도체|집적\s*회로|트랜지스터|마이크로\s*프로세서|중앙\s*처리\s*장치/i],
+ ['programming',/프로그래밍|코딩|알고리즘|소프트웨어\s*공학|컴퓨터\s*프로그램/i],
+ ['digital_art',/컴퓨터\s*그래픽|3차원\s*모델링|3d\s*모델링|디지털\s*아트|미디어\s*아트|컴퓨터\s*애니메이션/i],
+ ['virtual_reality',/가상\s*현실|증강\s*현실|혼합\s*현실|메타버스/i],
+ ['energy',/에너지|태양광|풍력|신재생|전기\s*자동차|배터리|전지/i],
+ ['space',/우주|천문|행성|은하|인공위성|별자리|망원경/i],
+ ['mobile',/스마트폰|휴대\s*전화|모바일\s*기기|스마트\s*기기/i],
+ ['games',/게임|e스포츠|이스포츠|비디오\s*게임|보드\s*게임/i],
+ ['photos',/사진|카메라|촬영|디지털\s*사진/i],
+ ['cuisine',/요리|한식|일식|중식|양식|음식\s*문화|식문화|제과|제빵|베이킹/i],
+ ['film',/영화|시네마|영상\s*예술|영화\s*촬영|영상\s*편집/i],
+ ['animation',/애니메이션|만화|웹툰|카툰/i],
+ ['music',/음악|작곡|악기|오케스트라|합창|클래식|재즈|음악\s*감상/i],
+ ['arts',/미술|회화|조각|수채화|드로잉|그림\s*그리기/i],
+ ['design',/디자인|사용자\s*경험|사용자\s*인터페이스|ui\/ux|ux/i],
+ ['architecture',/건축|건물|건축물|도시\s*계획/i],
+ ['literature',/문학|소설|시인|시문학|동화|희곡/i],
+ ['reading',/독서|책\s*읽기|속독|도서관/i],
+ ['study_methods',/공부법|학습법|메타인지|기억법|암기법|시험\s*공부|학습\s*전략/i],
+ ['memory',/기억|기억력|해마|뇌과학|신경과학|변연계|대뇌|전두엽/i],
+ ['attention',/집중|주의력|멀티태스킹|주의\s*집중/i],
+ ['sleep',/수면|잠|생체\s*리듬|일주기/i],
+ ['language',/언어학|언어\s*교육|외국어|일본어|영어\s*학습|번역/i],
+ ['math',/수학|미적분|확률|기하학|통계학|피타고라스/i],
+ ['science',/과학\s*실험|과학사|물리학|화학|생명과학|실험/i],
+ ['history',/역사|문화재|유적|유물|박물관|고고학/i],
+ ['gardening',/원예|식물\s*재배|정원|화분|텃밭/i],
+ ['crafts',/공예|뜨개|뜨개질|수공예|도예|목공|종이\s*접기/i],
+ ['outdoors',/캠핑|등산|하이킹|트레킹|산악/i],
+ ['sports',/스포츠|축구|농구|달리기|자전거|수영/i],
+ ['travel',/여행|관광|배낭\s*여행/i]
+];
+const DIVERSITY_STOPWORDS=new Set(['한국','한국어','세계','역사','개요','분류','종류','방법','기술','문화','이론','기초','원리','교육','과학','시스템','구조','개념','학습','영향','사례']);
+function topicTokens(item){
+ const title=String(item?.originalTitle||item?.title||'').toLowerCase()
+  .replace(/\([^)]*\)/g,' ').replace(/[^가-힣a-z0-9]+/g,' ');
+ return [...new Set(title.split(/\s+/).filter(w=>w.length>=2&&!DIVERSITY_STOPWORDS.has(w)))];
+}
+function semanticTopicFamily(item){
+ const source=String(item?.originalTitle||item?.title||'').trim();
+ for(const [name,pattern] of TOPIC_FAMILIES)if(pattern.test(source))return name;
+ // 주제어 자체가 미지의 경우에도 원제목의 핵심 단어들이 같으면 같은 군집으로 취급합니다.
+ const tokens=topicTokens(item);
+ return 'other:'+(tokens.length?tokens.slice(0,2).join('_'):source.toLowerCase().replace(/\s/g,''));
+}
+function tooSimilarTopic(a,b){
+ if(semanticTopicFamily(a)===semanticTopicFamily(b))return true;
+ const t1=topicTokens(a),t2=topicTokens(b);
+ if(!t1.length||!t2.length)return false;
+ const common=t1.filter(x=>t2.some(y=>x===y||(x.length>=3&&y.length>=3&&(x.includes(y)||y.includes(x))))).length;
+ const overlap=common/Math.min(t1.length,t2.length);
+ return common>0 && overlap>=.8;
+}
+function selectDiverseTopics(items,categories,maxPerCat,blocked=[]){
+ const chosen=[],counts=Object.fromEntries(categories.map(c=>[c,0]));
+ const existing=[...blocked];
+ for(const item of items){
+  if(existing.some(other=>tooSimilarTopic(item,other)))continue;
+  const category=categories.includes(item.category)?item.category:categories[0];
+  if((counts[category]||0)>=maxPerCat)continue;
+  chosen.push(item);existing.push(item);counts[category]=(counts[category]||0)+1;
+ }
+ return chosen;
+}
+
 function uniqueHeadlines(cards){
  const usedTexts=new Set(),usedFrames=new Set();
  const normalize=x=>tidy(x).replace(/[\s"'‘’“”.,!?]/g,'').toLowerCase();
