@@ -672,8 +672,14 @@ function excerptCandidates(fullText,categories){
     const depth=matched.reduce((sum,x)=>sum+Math.min(x.hits.length,3),0);
     const multi=matched.length>=2;
     const clearSentence=/[.!?。]$/.test(joined)?3:0;
+    // 백과사전의 첫 문장 정의만 반복하기보다 원문 속 실제 사례와 작동 과정을 선택.
+    const example=[...new Set(joined.match(/예를 들어|대표적으로|실제로|활용|응용|사례|제작|관찰|실험|발견|일상|생활|만든|사용된다|이용된다/g)||[])].length;
+    const explanation=[...new Set(joined.match(/때문에|따라서|이로 인해|차이|작동|변화|과정|영향|결과|비교|해결|가능하다/g)||[])].length;
+    const definition=/^(?:.{2,65})(?:은|는|이란|란).{0,110}(?:의 한 분야|일종|뜻한다|의미한다|총칭|분야이다|것이다)/.test(joined.slice(0,170));
     const overlong=Math.max(0,joined.length-290)/35;
-    const score=(multi?80:0)+depth*8+Math.min(student,6)*3+clearSentence-overlong-(i>42?3:0);
+    const score=(multi?80:0)+depth*8+Math.min(student,6)*3
+      +Math.min(example,4)*7+Math.min(explanation,3)*4
+      +clearSentence+(i>0?4:0)-(definition?14:0)-overlong-(i>42?3:0);
     pool.push({text:joined,tags:matched.map(x=>x.cat).slice(0,2),signals,score,position:i});
   }
  }
@@ -877,7 +883,7 @@ async function wiki(category,term,max,cursor=null,queryOverride=null,focusCats=n
  for(const {page} of shortlist){
    const args=new URLSearchParams({
      action:'query',format:'json',pageids:String(page.pageid),
-     prop:'extracts',explaintext:'1',exchars:'1100'
+     prop:'extracts',explaintext:'1',exchars:'1700'
    });
    try{
      const data=await wikiJSON('https://ko.wikipedia.org/w/api.php?'+args);
@@ -1027,7 +1033,7 @@ function themeThumb(item){
 function card(x,isSavedView){const card=document.createElement('article');card.className='result';if(x.thumbnail){const img=document.createElement('img');img.className='thumb';img.src=x.thumbnail;img.alt=(x.originalTitle||x.title)+' 관련 자료 이미지';img.loading='lazy';img.referrerPolicy='no-referrer';img.addEventListener('error',()=>{img.replaceWith(themeThumb(x))});card.append(img)}else card.append(themeThumb(x));const body=document.createElement('div');body.className='rbody';const tags=addText(body,'div','','tags');for(const cat of (x.tags||[]).slice(0,2)){addText(tags,'span',cat,'tag '+({공부:'study',기술:'tech',문화:'culture',취미:'hobby'}[cat]||''))}addText(tags,'span',srcName(x.form),'tag form');if((x.tags||[]).length>1)addText(tags,'span','✦ 복합 분야','tag mix');if(x.source==='한국어 위키백과')addText(body,'div',x.titleStatus==='본문 발췌 기반 · 승민 검토 필요'?'✦ 학생 관심 구간 발췌 · 검토 필요':x.titleStatus==='원문 발췌 기반 · 검토 필요'?'✦ 원문 기반 제목 · 검토 필요':'✦ 주제별 제목 제안 · 원문 검토 필요','pitch');addText(body,'h3',x.title);if(x.originalTitle&&x.originalTitle!==x.title)addText(body,'div','원본 제목: '+x.originalTitle,'meta originalname');addText(body,'p',x.description||'원본에서 자세한 내용을 확인해 주세요.','desc');if(x.evidence)addText(body,'div','분야 연결 근거: '+x.evidence,'meta evidence');if(!isSavedView&&x.preferenceReason&&$('personalize').checked)addText(body,'div','✦ 취향 반영: '+x.preferenceReason,'personalized-hint');addText(body,'div',x.source+(x.date?' · '+x.date.slice(0,10):''),'meta');if(isSavedView){const box=addText(body,'div','','edited');addText(box,'label','추천 카드 제목 (직접 수정 가능)');const titleField=document.createElement('input');titleField.className='input';titleField.type='text';titleField.maxLength=100;titleField.value=x.title;titleField.setAttribute('aria-label','추천 카드 제목 수정');titleField.addEventListener('change',()=>{const edited=titleField.value.trim();if(!edited){titleField.value=x.title;return}updateSaved(x.url,{title:edited,titleStatus:'수동 수정'});render()});box.append(titleField);addText(box,'label','분야 수정 (최대 2개)');const select=document.createElement('select');for(const c of CAT){const op=document.createElement('option');op.value=c;op.textContent=c;select.append(op)}select.value=x.tags?.[0]||x.category;select.addEventListener('change',()=>{updateSaved(x.url,{tags:[select.value,...(x.tags||[]).filter(t=>t!==select.value)].slice(0,2)});render()});box.append(select);const second=document.createElement('select');for(const c of ['없음',...CAT]){const op=document.createElement('option');op.value=c;op.textContent=c==='없음'?'두 번째 분야 없음':c;second.append(op)}second.value=x.tags?.[1]||'없음';second.addEventListener('change',()=>{const first=select.value;const val=second.value;updateSaved(x.url,{tags:val==='없음'||val===first?[first]:[first,val]});render()});addText(box,'label','두 번째 분야');box.append(second);addText(box,'label','추천 이유 / 검토 메모');const area=document.createElement('textarea');area.className='input';area.value=x.reason||'';area.placeholder='이 콘텐츠를 추천할 이유를 작성하세요.';area.addEventListener('change',()=>updateSaved(x.url,{reason:area.value}));box.append(area);const verify=document.createElement('label');verify.style.display='flex';verify.style.alignItems='center';verify.style.gap='7px';const chk=document.createElement('input');chk.type='checkbox';chk.checked=!!x.verified;chk.addEventListener('change',()=>{updateSaved(x.url,{verified:chk.checked});render()});verify.append(chk,document.createTextNode('원본 링크·내용 직접 확인함'));box.append(verify);}
 const acts=addText(body,'div','','actions');const link=document.createElement('a');link.href=x.url;link.target='_blank';link.rel='noopener noreferrer';link.className='secondary';link.textContent='↗ 원본 열기';acts.append(link);if(isSavedView)acts.append(actionButton('보관함에서 삭제','ghost',()=>{if(confirm('이 후보를 보관함에서 삭제할까요?')){saved=saved.filter(y=>y.url!==x.url);persist();render()}}));else acts.append(actionButton(isSaved(x)?'✓ 저장됨':'+ 후보 저장','primary',()=>{if(!isSaved(x)){const {fullText,...candidate}=x;saved.unshift(candidate);persist()}render()}));card.append(body);return card}
 function fallback(form){const d=addText(document.createElement('div'),'div',form==='영상'?'▶ VIDEO':'▧ ARTICLE','thumb thumbfallback');return d}function updateSaved(url,patch){saved=saved.map(y=>y.url===url?{...y,...patch}:y);persist()}
-function render(){const active=tab==='saved';updateRerollButton();$('tabResults').classList.toggle('on',!active);$('tabSaved').classList.toggle('on',active);$('savedCount').textContent=saved.length;const arr=uniqueVisualCards(active?saved:results);const grid=$('results');grid.replaceChildren();if(active){hideSearchProgress();setStatus(saved.length?`${saved.length}개 후보를 보관하고 있습니다. 저장 내용은 현재 브라우저에만 남아요.`:'아직 저장한 후보가 없습니다. 검색 결과에서 후보 저장을 눌러주세요.')}else if(!busy){const multi=results.filter(x=>(x.tags||[]).length>1).length;setStatus(results.length?`${results.length}개 한국어 콘텐츠를 찾았습니다.${lastSearchCats.length>1?' 복합 분야 '+multi+'개 · 복합 분야 카드를 우선 표시합니다.':''} 원문 근거를 확인한 후 저장하세요.`:'자동 검색 결과가 없습니다. 아래 웹 검색 링크를 이용해 주세요.')}if(!arr.length){grid.append(addText(document.createElement('div'),'div',active?'보관함이 비어 있어요.':'표시할 검색 결과가 없어요.','empty'));grid.lastElementChild.style.gridColumn='1/-1';return}for(const x of arr)grid.append(card(x,active))}
+function render(){const active=tab==='saved';updateRerollButton();$('tabResults').classList.toggle('on',!active);$('tabSaved').classList.toggle('on',active);$('savedCount').textContent=saved.length;const arr=uniqueVisualCards(active?saved:results);const grid=$('results');grid.replaceChildren();if(active){hideSearchProgress();setStatus(saved.length?`${saved.length}개 후보를 보관하고 있습니다. 저장 내용은 현재 브라우저에만 남아요.`:'아직 저장한 후보가 없습니다. 검색 결과에서 후보 저장을 눌러주세요.')}else if(!busy){const multi=results.filter(x=>(x.tags||[]).length>1).length;setStatus(results.length?`${results.length}개 한국어 콘텐츠를 찾았습니다.${lastSearchCats.length>1?' 복합 분야 '+multi+'개 · 복합 분야 카드를 우선 표시합니다.':''} 비슷한 주제는 대표 카드 하나만 남겼어요. 원문 근거를 확인한 후 저장하세요.`:'자동 검색 결과가 없습니다. 아래 웹 검색 링크를 이용해 주세요.')}if(!arr.length){grid.append(addText(document.createElement('div'),'div',active?'보관함이 비어 있어요.':'표시할 검색 결과가 없어요.','empty'));grid.lastElementChild.style.gridColumn='1/-1';return}for(const x of arr)grid.append(card(x,active))}
 async function search(){
  if(busy)return;
  const cats=selected('cats'),forms=selected('forms'),term=$('keyword').value.trim();
@@ -1165,10 +1171,10 @@ function selectUnseenCards(state){
   .filter(x=>x?.url&&isKoreanCandidate(x)&&!stored.has(canonicalCardKey(x))
     &&!seenUrls.has(canonicalCardKey(x))&&!seenTitles.has(topicCardKey(x)))
   .map(x=>curateStudentCard({...x},state.cats)).filter(Boolean);
- const ordered=uniqueHeadlines(rankForUser(candidates,state.cats));
+ const ordered=uniqueHeadlines(rankForUser(candidates,state.cats))
+  .filter(item=>!state.seenThemes?.has(semanticTopicFamily(item)));
  const chosen=selectDiverseTopics(ordered,state.cats,state.max);
- const filtered=chosen.filter(item=>!state.seenThemes?.has(semanticTopicFamily(item)));
- return uniqueVisualCards(filtered);
+ return uniqueVisualCards(chosen);
 }
 function updateRerollButton(){
  const b=$('reroll');
@@ -1286,8 +1292,9 @@ async function loadMore(){
     }
   }
   results=uniqueVisualCards(selectDiverseTopics(
-    uniqueHeadlines(rankForUser([...byUrl.values()],state.cats)),state.cats,state.max
-  ).filter(x=>!state.seenThemes.has(semanticTopicFamily(x))));
+    uniqueHeadlines(rankForUser([...byUrl.values()],state.cats))
+      .filter(x=>!state.seenThemes.has(semanticTopicFamily(x))),state.cats,state.max
+  ));
   busy=false;$('search').disabled=false;render();updateLoadMore();
   updateSearchProgress({phase:errors.length===nextJobs.length?'failed':'done',done:moreDone,total:nextJobs.length,found:results.length,errors:errors.length,more:true});
   if(errors.length)setStatus('새 기사 일부 검색 실패: '+errors.join(' / ')+'. 기존 후보는 모두 유지했습니다.');
